@@ -50,9 +50,10 @@ pnpm preview
   and run under happy-dom.
 - `scripts/` — dev-only data generation, run by hand; output is committed.
 
-The plan this is being built against lives in [`docs/PLAN.md`](docs/PLAN.md).
-The scheduler's tuning is recorded in
-[`docs/arts-recalibration.md`](docs/arts-recalibration.md).
+The plan this was built against lives in [`docs/PLAN.md`](docs/PLAN.md), kept
+as written. Where the finished app departs from it, and why, is recorded in
+[`docs/plan-deviations.md`](docs/plan-deviations.md); the scheduler's tuning is
+in [`docs/arts-recalibration.md`](docs/arts-recalibration.md).
 
 ### Regenerating the data
 

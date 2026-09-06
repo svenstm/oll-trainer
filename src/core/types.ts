@@ -40,10 +40,16 @@ export interface OllCase {
   name: string
   group: OllGroup
   pattern: Pattern
-  /** Canonical, ergonomic algorithm — what the app teaches. */
+  /**
+   * Canonical, ergonomic algorithm — what the app teaches.
+   *
+   * docs/PLAN.md §16 also wanted 2-3 generated alternatives "at no extra
+   * cost", which turned out not to hold: the fast solver cannot express an
+   * orientation-only goal, and the optimal one does not finish. Full-cube
+   * solutions *are* valid OLL algorithms but run 12-18 moves, so they would be
+   * worse than this one rather than an alternative to it.
+   */
   alg: string
-  /** 2–3 shortest generated solutions. */
-  alternatives: string[]
 }
 
 export interface Solve {

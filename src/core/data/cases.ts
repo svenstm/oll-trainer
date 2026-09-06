@@ -15,7 +15,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010000010111010111'),
     alg: "R U2 R2 F R F' U2 R' F R F'",
-    alternatives: [],
   },
   {
     id: 2,
@@ -23,7 +22,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010000010110111110'),
     alg: "F R U R' U' F' f R U R' U' f'",
-    alternatives: [],
   },
   {
     id: 3,
@@ -31,7 +29,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010001110110010011'),
     alg: "f R U R' U' f' U' F R U R' U' F'",
-    alternatives: [],
   },
   {
     id: 4,
@@ -39,7 +36,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010001011010110110'),
     alg: "f R U R' U' f' U F R U R' U' F'",
-    alternatives: [],
   },
   {
     id: 5,
@@ -47,7 +43,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Squares',
     pattern: patternFromKey('000011011110100000011'),
     alg: "r' U2 R U R' U r",
-    alternatives: [],
   },
   {
     id: 6,
@@ -55,7 +50,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Squares',
     pattern: patternFromKey('000011011011000100110'),
     alg: "r U2 R' U' R U' r'",
-    alternatives: [],
   },
   {
     id: 7,
@@ -63,7 +57,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('000110011110110000001'),
     alg: "r U R' U R U2 r'",
-    alternatives: [],
   },
   {
     id: 8,
@@ -71,7 +64,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('000011110011001000110'),
     alg: "r' U' R U' R' U2 r",
-    alternatives: [],
   },
   {
     id: 9,
@@ -79,7 +71,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('001110010010011100100'),
     alg: "R U R' U' R' F R2 U R' U' F'",
-    alternatives: [],
   },
   {
     id: 10,
@@ -87,7 +78,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('001110010110010001001'),
     alg: "R U R' U R' F R F' R U2 R'",
-    alternatives: [],
   },
   {
     id: 11,
@@ -95,7 +85,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('000011110110100001010'),
     alg: "r U R' U R' F R F' R U2 r'",
-    alternatives: [],
   },
   {
     id: 12,
@@ -103,7 +92,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('000110011011010100100'),
     alg: "M' R' U' R U' R' U2 R U' R r'",
-    alternatives: [],
   },
   {
     id: 13,
@@ -111,7 +99,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('000111100110100011000'),
     alg: "F U R U' R2 F' R U R U' R'",
-    alternatives: [],
   },
   {
     id: 14,
@@ -119,7 +106,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('000111001011000110100'),
     alg: "R' F R U R' F' R F U' F'",
-    alternatives: [],
   },
   {
     id: 15,
@@ -127,7 +113,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('000111001110100010001'),
     alg: "l' U' l L' U' L U l' U l",
-    alternatives: [],
   },
   {
     id: 16,
@@ -135,7 +120,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('000111100011001010100'),
     alg: "r U r' R U R' U' r U' r'",
-    alternatives: [],
   },
   {
     id: 17,
@@ -143,7 +127,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('001010100010010011110'),
     alg: "R U R' U R' F R F' U2 R' F R F'",
-    alternatives: [],
   },
   {
     id: 18,
@@ -151,7 +134,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010101111010010010'),
     alg: "r U R' U R U2 r2 U' R U' R' U2 r",
-    alternatives: [],
   },
   {
     id: 19,
@@ -159,7 +141,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010101010110010110'),
     alg: "r' R U R U R' U' M' R' F R F'",
-    alternatives: [],
   },
   {
     id: 20,
@@ -167,7 +148,6 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('101010101010010010010'),
     alg: "r U R' U' M2 U R U' R' U' M'",
-    alternatives: [],
   },
   {
     id: 21,
@@ -175,7 +155,6 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111010000101000101'),
     alg: "R U2 R' U' R U R' U' R U' R'",
-    alternatives: [],
   },
   {
     id: 22,
@@ -183,7 +162,6 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111010000100101100'),
     alg: "R U2 R2 U' R2 U' R2 U2 R",
-    alternatives: [],
   },
   {
     id: 23,
@@ -191,7 +169,6 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111111101000000000'),
     alg: "R2 D R' U2 R D' R' U2 R'",
-    alternatives: [],
   },
   {
     id: 24,
@@ -199,7 +176,6 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111111000100000100'),
     alg: "r U R' U' r' F R F'",
-    alternatives: [],
   },
   {
     id: 25,
@@ -207,7 +183,6 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('011111110000000001100'),
     alg: "F' r U R' U' r' F R",
-    alternatives: [],
   },
   {
     id: 26,
@@ -215,7 +190,6 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111011001000100100'),
     alg: "R U2 R' U' R U' R'",
-    alternatives: [],
   },
   {
     id: 27,
@@ -223,7 +197,6 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111011100100000001'),
     alg: "R U R' U R U2 R'",
-    alternatives: [],
   },
   {
     id: 28,
@@ -231,7 +204,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Corners Correct, Edges Flipped',
     pattern: patternFromKey('101011111010000000010'),
     alg: "r U R' U' M U R U' R'",
-    alternatives: [],
   },
   {
     id: 29,
@@ -239,7 +211,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('010011101000100010110'),
     alg: "R U R' U' R U' R' F' U' F R U R'",
-    alternatives: [],
   },
   {
     id: 30,
@@ -247,7 +218,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('001110011110010100000'),
     alg: "F R' F R2 U' R' U' R U R' F2",
-    alternatives: [],
   },
   {
     id: 31,
@@ -255,7 +225,6 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('000011111010100000110'),
     alg: "R' U' F U R U' R' F' R",
-    alternatives: [],
   },
   {
     id: 32,
@@ -263,7 +232,6 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('000110111010110000100'),
     alg: "L U F' U' L' U L F L'",
-    alternatives: [],
   },
   {
     id: 33,
@@ -271,7 +239,6 @@ export const CASES: readonly OllCase[] = [
     group: 'T-Shapes',
     pattern: patternFromKey('001111001110000110000'),
     alg: "R U R' U' R' F R F'",
-    alternatives: [],
   },
   {
     id: 34,
@@ -279,7 +246,6 @@ export const CASES: readonly OllCase[] = [
     group: 'C-Shapes',
     pattern: patternFromKey('000111101010100010100'),
     alg: "R U R2 U' R' F R U R U' F'",
-    alternatives: [],
   },
   {
     id: 35,
@@ -287,7 +253,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('001110110010010001100'),
     alg: "R U2 R2 F R F' R U2 R'",
-    alternatives: [],
   },
   {
     id: 36,
@@ -295,7 +260,6 @@ export const CASES: readonly OllCase[] = [
     group: 'W-Shapes',
     pattern: patternFromKey('001011110110001000010'),
     alg: "L' U' L U' L' U L U L F' L' F",
-    alternatives: [],
   },
   {
     id: 37,
@@ -303,7 +267,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('001110110110011000000'),
     alg: "F R' F' R U R U' R'",
-    alternatives: [],
   },
   {
     id: 38,
@@ -311,7 +274,6 @@ export const CASES: readonly OllCase[] = [
     group: 'W-Shapes',
     pattern: patternFromKey('001011110010000001110'),
     alg: "R U R' U R U' R' U' R' F R F'",
-    alternatives: [],
   },
   {
     id: 39,
@@ -319,7 +281,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('001111100010000011100'),
     alg: "L F' L' U' L U F U' L'",
-    alternatives: [],
   },
   {
     id: 40,
@@ -327,7 +288,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('011010110000010001110'),
     alg: "R' F R U R' U' F' U R",
-    alternatives: [],
   },
   {
     id: 41,
@@ -335,7 +295,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('001110011010010000101'),
     alg: "R U R' U R U2 R' F R U R' U' F'",
-    alternatives: [],
   },
   {
     id: 42,
@@ -343,7 +302,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('010011101101000010010'),
     alg: "R' U' R U' R' U2 R F R U R' U' F'",
-    alternatives: [],
   },
   {
     id: 43,
@@ -351,7 +309,6 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('000011111111000000010'),
     alg: "F' U' L' U L F",
-    alternatives: [],
   },
   {
     id: 44,
@@ -359,7 +316,6 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('000110111111010000000'),
     alg: "F U R U' R' F'",
-    alternatives: [],
   },
   {
     id: 45,
@@ -367,7 +323,6 @@ export const CASES: readonly OllCase[] = [
     group: 'T-Shapes',
     pattern: patternFromKey('001111001010000010101'),
     alg: "F R U R' U' F'",
-    alternatives: [],
   },
   {
     id: 46,
@@ -375,7 +330,6 @@ export const CASES: readonly OllCase[] = [
     group: 'C-Shapes',
     pattern: patternFromKey('000111101111000010000'),
     alg: "R' U' R' F R F' U R",
-    alternatives: [],
   },
   {
     id: 47,
@@ -383,7 +337,6 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('000011010010100101110'),
     alg: "F' L' U' L U L' U' L U F",
-    alternatives: [],
   },
   {
     id: 48,
@@ -391,7 +344,6 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('000011010110101100010'),
     alg: "F R U R' U' R U R' U' F'",
-    alternatives: [],
   },
   {
     id: 49,
@@ -399,7 +351,6 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('000011010111001000011'),
     alg: "r U' r2 U r2 U r2 U' r",
-    alternatives: [],
   },
   {
     id: 50,
@@ -407,7 +358,6 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('000011010011000001111'),
     alg: "r' U r2 U' r2 U' r2 U r'",
-    alternatives: [],
   },
   {
     id: 51,
@@ -415,7 +365,6 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('000111000011000011101'),
     alg: "f R U R' U' R U R' U' f'",
-    alternatives: [],
   },
   {
     id: 52,
@@ -423,7 +372,6 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('000111000010100111100'),
     alg: "R U R' U R U' B U' B' R'",
-    alternatives: [],
   },
   {
     id: 53,
@@ -431,7 +379,6 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('000011010010101000111'),
     alg: "l' U2 L U L' U' L U L' U l",
-    alternatives: [],
   },
   {
     id: 54,
@@ -439,7 +386,6 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('000011010111000101010'),
     alg: "r U2 R' U' R U R' U' R U' r'",
-    alternatives: [],
   },
   {
     id: 55,
@@ -447,7 +393,6 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('000111000111000111000'),
     alg: "R U2 R2 U' R U' R' U2 F R F'",
-    alternatives: [],
   },
   {
     id: 56,
@@ -455,7 +400,6 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('000111000010101010101'),
     alg: "r U r' U R U' R' U R U' R' r U' r'",
-    alternatives: [],
   },
   {
     id: 57,
@@ -463,7 +407,6 @@ export const CASES: readonly OllCase[] = [
     group: 'Corners Correct, Edges Flipped',
     pattern: patternFromKey('101111101010000010000'),
     alg: "R U R' U' M' U R U' r'",
-    alternatives: [],
   },
 ]
 

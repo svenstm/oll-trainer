@@ -22,7 +22,6 @@ function render(cases: ReturnType<typeof bindCases>): string {
     group: ${JSON.stringify(c.group)},
     pattern: patternFromKey('${patternKey(c.pattern)}'),
     alg: ${JSON.stringify(c.alg)},
-    alternatives: [],
   },`,
     )
     .join('\n')

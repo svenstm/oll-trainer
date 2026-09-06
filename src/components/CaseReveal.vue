@@ -33,17 +33,7 @@ defineProps<{
       </p>
       <p class="text-sm text-muted">{{ ollCase.group }}</p>
 
-      <p class="mt-2 overflow-x-auto font-mono text-sm">{{ ollCase.alg }}</p>
-      <!-- Empty until alternative algorithms are generated; see docs/PLAN.md §12. -->
-      <ul v-if="ollCase.alternatives.length > 0" class="mt-1 space-y-0.5">
-        <li
-          v-for="alternative in ollCase.alternatives"
-          :key="alternative"
-          class="overflow-x-auto font-mono text-sm text-muted"
-        >
-          {{ alternative }}
-        </li>
-      </ul>
+      <p class="mt-2 font-mono text-sm">{{ ollCase.alg }}</p>
     </div>
   </section>
 </template>
