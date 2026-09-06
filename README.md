@@ -40,6 +40,23 @@ pnpm preview
 - `scripts/` — dev-only data generation, run by hand; output is committed.
 
 The plan this is being built against lives in [`docs/PLAN.md`](docs/PLAN.md).
+The scheduler's tuning is recorded in
+[`docs/arts-recalibration.md`](docs/arts-recalibration.md).
+
+### Regenerating the data
+
+`src/core/data/` is generated and committed; the app never runs the generators.
+
+```sh
+pnpm data:cases       # enumerate, bind to the standard numbering, verify, write
+pnpm data:scrambles   # ~20 verified scrambles per case, via cubing
+pnpm data:print       # draw all 57 derived patterns as ASCII, for eyeballing
+pnpm arts:simulate    # synthetic multi-day timelines for scheduler tuning
+```
+
+`pnpm data:cases` refuses to write anything unless all 57 hand-entered
+algorithms bind to exactly the 57 independently enumerated orientation
+classes.
 
 ## Licence
 
