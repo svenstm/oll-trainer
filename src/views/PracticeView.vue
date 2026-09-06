@@ -46,6 +46,19 @@ const status = computed(() =>
   artsModel.value ? learnStatus(artsModel.value, selection.ids, settings.artsConfig) : null,
 )
 
+/** Rendered in two places, because it sits inline on desktop and below on mobile. */
+const statusText = computed(() => {
+  const value = status.value
+  if (!value) return null
+  const suffix =
+    value.atRisk > 0
+      ? ` · ${value.atRisk} at risk`
+      : value.introduced === value.total
+        ? ' · all strong'
+        : ''
+  return `${value.introduced} / ${value.total} introduced${suffix}`
+})
+
 const revealedCase = computed(() =>
   revealed.value ? (CASES_BY_ID.get(revealed.value.caseId) ?? null) : null,
 )
@@ -188,10 +201,14 @@ watch(
 
 <template>
   <main
-    class="mx-auto flex min-h-full max-w-5xl flex-col gap-5 px-4 py-4 sm:px-6"
+    class="no-select mx-auto flex min-h-full max-w-5xl flex-col gap-4 px-4 py-3 sm:gap-5 sm:px-6 sm:py-4"
     v-on="touchHandlers"
   >
-    <header class="flex flex-wrap items-center gap-3">
+    <!--
+      One row on every width. The learn status goes underneath rather than
+      inline, which on a phone would push the buttons onto a third row.
+    -->
+    <header class="flex items-center gap-2 sm:gap-3">
       <RouterLink
         :to="{ name: 'selection' }"
         class="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface"
@@ -200,10 +217,8 @@ watch(
         ← Cases
       </RouterLink>
       <h1 class="text-sm font-medium capitalize">{{ mode }}</h1>
-      <p v-if="status" class="text-sm text-muted" data-testid="learn-status">
-        {{ status.introduced }} / {{ status.total }} introduced
-        <template v-if="status.atRisk > 0"> · {{ status.atRisk }} at risk</template>
-        <template v-else-if="status.introduced === status.total"> · all strong</template>
+      <p v-if="statusText" class="hidden text-sm text-muted sm:block" data-testid="learn-status">
+        {{ statusText }}
       </p>
       <div class="ml-auto flex items-center gap-2">
         <button
@@ -219,9 +234,17 @@ watch(
       </div>
     </header>
 
+    <p
+      v-if="statusText"
+      class="-mt-2 text-sm text-muted sm:hidden"
+      data-testid="learn-status-mobile"
+    >
+      {{ statusText }}
+    </p>
+
     <section
       v-if="showSettings"
-      class="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2"
+      class="grid gap-3 rounded-tile border border-border bg-surface p-4 sm:grid-cols-2"
       data-testid="settings"
     >
       <label class="text-sm">
@@ -309,26 +332,42 @@ watch(
       v-if="current"
       :scramble="current.scramble"
       :size="settings.scrambleSize"
-      class="text-center"
+      class="mx-auto max-w-3xl text-center"
     />
 
-    <div class="flex flex-col items-center justify-center gap-2 py-6">
+    <!--
+      grow, so the tappable area is the whole middle of the screen rather than
+      just the digits. On a phone this is the only thing you aim at.
+    -->
+    <div class="flex grow flex-col items-center justify-center gap-2 py-4 sm:grow-0 sm:py-10">
       <TimerDisplay :ms="displayMs" :phase="phase" :size="settings.timerSize" />
-      <p class="h-5 text-sm text-muted">
+      <p class="h-5 text-center text-sm text-muted">
         <template v-if="phase === 'idle'">
-          Hold space (or touch) to get ready, release to start.
+          <span class="hidden sm:inline">Hold space to get ready, release to start.</span>
+          <span class="sm:hidden">Hold to get ready, release to start.</span>
         </template>
         <template v-else-if="phase === 'holding'">Keep holding…</template>
         <template v-else-if="armed">Release to start.</template>
       </p>
     </div>
 
-    <CaseReveal
-      v-if="revealed && revealedCase"
-      :oll-case="revealedCase"
-      :ms="revealed.ms"
-      :pattern="revealed.pattern"
-    />
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-1 opacity-0"
+      leave-active-class="transition duration-100 ease-in"
+      leave-to-class="opacity-0"
+    >
+      <!--
+        No key and no out-in mode: between two solves the panel should update
+        in place, not empty itself and leave a gap where it was.
+      -->
+      <CaseReveal
+        v-if="revealed && revealedCase"
+        :oll-case="revealedCase"
+        :ms="revealed.ms"
+        :pattern="revealed.pattern"
+      />
+    </Transition>
 
     <ResultsPanel
       :session-solves="solves.sessionSolves"

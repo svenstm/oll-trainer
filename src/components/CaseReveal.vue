@@ -17,7 +17,7 @@ defineProps<{
 
 <template>
   <section
-    class="flex items-center gap-4 rounded-xl border border-border bg-surface p-4"
+    class="flex items-center gap-4 rounded-tile border border-border bg-surface p-4"
     data-testid="case-reveal"
     aria-live="polite"
   >

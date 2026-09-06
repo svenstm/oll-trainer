@@ -71,7 +71,7 @@ const SUMMARY = [
 </script>
 
 <template>
-  <section class="rounded-xl border border-border bg-surface">
+  <section class="rounded-tile border border-border bg-surface">
     <div class="flex gap-1 border-b border-border p-1" role="tablist">
       <button
         v-for="name in ['session', 'cases'] as const"
@@ -125,7 +125,7 @@ const SUMMARY = [
       </ol>
     </div>
 
-    <div v-else role="tabpanel" data-testid="panel-cases">
+    <div v-else role="tabpanel" class="max-h-96 overflow-y-auto" data-testid="panel-cases">
       <p v-if="caseRows.length === 0" class="p-4 text-sm text-muted">No cases solved yet.</p>
       <table v-else class="w-full text-sm">
         <caption class="px-3 pt-2 text-left text-xs text-muted">

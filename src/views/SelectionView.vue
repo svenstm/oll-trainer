@@ -90,7 +90,7 @@ const MODE_BLURB: Record<Mode, string> = {
             class="w-full rounded-tile border p-2 transition-[background-color,border-color,box-shadow] duration-150"
             :class="
               selection.has(ollCase.id)
-                ? 'border-accent bg-surface shadow-sm'
+                ? 'border-accent bg-surface shadow-sm ring-1 ring-accent'
                 : 'stickers-off border-border bg-transparent hover:border-muted'
             "
             :aria-pressed="selection.has(ollCase.id)"

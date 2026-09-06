@@ -55,10 +55,14 @@
   --sticker-side: oklch(88% 0.14 92);
   --sticker-none: oklch(36% 0.015 255);
 
-  /* An unselected case: still legible as a shape, plainly not chosen. */
-  --sticker-up-off: oklch(88% 0.012 250);
+  /*
+   * An unselected case: still legible as a shape, plainly not chosen. The
+   * light-to-dark relationship has to match the selected state, or the shape
+   * reads inverted; only the contrast drops.
+   */
+  --sticker-up-off: oklch(87% 0.012 250);
   --sticker-side-off: oklch(91% 0.008 250);
-  --sticker-none-off: oklch(80% 0.008 250);
+  --sticker-none-off: oklch(66% 0.014 250);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -78,9 +82,9 @@
     --sticker-side: oklch(72% 0.15 92);
     --sticker-none: oklch(30% 0.012 255);
 
-    --sticker-up-off: oklch(34% 0.012 255);
-    --sticker-side-off: oklch(30% 0.01 255);
-    --sticker-none-off: oklch(24% 0.01 255);
+    --sticker-up-off: oklch(44% 0.014 255);
+    --sticker-side-off: oklch(38% 0.012 255);
+    --sticker-none-off: oklch(25% 0.01 255);
   }
 }
 
@@ -100,9 +104,9 @@
   --sticker-side: oklch(72% 0.15 92);
   --sticker-none: oklch(30% 0.012 255);
 
-  --sticker-up-off: oklch(34% 0.012 255);
-  --sticker-side-off: oklch(30% 0.01 255);
-  --sticker-none-off: oklch(24% 0.01 255);
+  --sticker-up-off: oklch(44% 0.014 255);
+  --sticker-side-off: oklch(38% 0.012 255);
+  --sticker-none-off: oklch(25% 0.01 255);
 }
 
 html,

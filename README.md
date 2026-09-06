@@ -1,7 +1,9 @@
 # OLL Trainer
 
+**<https://svenstm.github.io/oll-trainer/>**
+
 Practice all 57 OLL cases, with an adaptive `learn` mode that schedules the
-cases you are slowest and least sure on.
+cases you are slowest and least sure on. Installable, and works offline.
 
 Three modes:
 
@@ -17,6 +19,15 @@ The original OLL trainer, and the idea this app rebuilds, are the work of
 independent rewrite: none of its code, scramble data, or images are used here.
 The case data in `src/core/data/` is generated from first principles by the
 scripts in `scripts/`.
+
+## Your data
+
+Solves are stored in your browser and nowhere else — there is no account and
+no server. The history is also the adaptive scheduler's whole memory, and it
+cannot be reconstructed, so **Export data** on the case list writes a JSON
+backup. Importing merges by solve id: restoring onto a fresh browser works,
+importing the same file twice changes nothing, and two devices can be merged
+without either losing anything.
 
 ## Development
 
