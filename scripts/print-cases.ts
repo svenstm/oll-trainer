@@ -2,7 +2,13 @@ import { applyMoves, invertMoves, SOLVED } from '../src/core/cube'
 import { patternFromCube } from '../src/core/pattern'
 import { OLL_ALGORITHMS } from './oll-algorithms'
 
-/** Draws a pattern the way <OllFace> will: U face boxed, side strips outside it. */
+/**
+ * Draws a pattern the way <OllFace> will: U face boxed, side strips outside it.
+ *
+ * This shows each *algorithm's* own orientation, which is often a rotation of
+ * the canonical pattern committed to src/core/data/cases.ts. That is the point
+ * — it is a second, independent view of the same data.
+ */
 function draw(p: readonly number[]): string[] {
   const c = (v: number | undefined) => (v === 1 ? '#' : '.')
   return [

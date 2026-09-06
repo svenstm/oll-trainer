@@ -101,22 +101,5 @@ export function persistedRef<T>(
   return state
 }
 
-// --- parsing helpers -------------------------------------------------------
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-export function asFiniteNumber(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-export function asOneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
-  return typeof value === 'string' && (allowed as readonly string[]).includes(value)
-    ? (value as T)
-    : fallback
-}
-
-export function clampNumber(value: number, lo: number, hi: number): number {
-  return value < lo ? lo : value > hi ? hi : value
-}
+// Re-exported so stores have one import for "read untrusted data".
+export { asFiniteNumber, asOneOf, clampNumber, isRecord } from '@/core/parse'

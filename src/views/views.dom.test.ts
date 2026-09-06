@@ -7,7 +7,10 @@ import { nextTick } from 'vue'
 import PracticeView from './PracticeView.vue'
 import SelectionView from './SelectionView.vue'
 import ResultsPanel from '@/components/ResultsPanel.vue'
+import { applyMoves, SOLVED } from '@/core/cube'
+import { CASES_BY_ID } from '@/core/data/cases'
 import { GROUPED_CASES } from '@/core/groups'
+import { canonicalPattern, patternFromCube, patternKey } from '@/core/pattern'
 import { resetStorageCache } from '@/stores/persist'
 import { useSelectionStore } from '@/stores/selection'
 import { useSettingsStore } from '@/stores/settings'
@@ -320,5 +323,135 @@ describe('ResultsPanel', () => {
       props: { sessionSolves: [], allSolves: [], mode: 'train' },
     })
     expect(wrapper.text()).toContain('Nothing solved this session yet')
+  })
+})
+
+describe('backup', () => {
+  it('offers export and import on the case list', async () => {
+    const wrapper = await mountSelection()
+    expect(wrapper.find('[data-testid="export-backup"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="import-backup"]').exists()).toBe(true)
+  })
+
+  it('merges an imported history into what is already there', async () => {
+    useSelectionStore().set([27, 21, 33])
+    useSettingsStore().update({ holdMs: 0 })
+    const wrapper = await mountPractice('train')
+    await doSolve()
+    const mine = useSolvesStore().solves[0]!
+
+    const backup = JSON.stringify({
+      app: 'oll-trainer',
+      version: 1,
+      solves: [
+        { id: 'theirs', caseId: 45, ms: 2500, ts: mine.ts - 60_000, mode: 'learn', rotation: 'y' },
+      ],
+      selection: [45],
+    })
+
+    await wrapper.get('[data-testid="settings-toggle"]').trigger('click')
+    const input = wrapper.get('[data-testid="import-file"]')
+    Object.defineProperty(input.element, 'files', {
+      value: [new File([backup], 'backup.json', { type: 'application/json' })],
+      configurable: true,
+    })
+    await input.trigger('change')
+    await nextTick()
+
+    const solves = useSolvesStore()
+    expect(solves.count).toBe(2)
+    // Oldest first, and my own solve survived the import.
+    expect(solves.solves.map((s) => s.id)).toEqual(['theirs', mine.id])
+    expect(wrapper.get('[data-testid="backup-message"]').text()).toContain('Added 1 solve')
+    expect(useSelectionStore().ids).toEqual([45])
+  })
+
+  it('says what is wrong with a file that is not a backup', async () => {
+    useSelectionStore().set([27])
+    const wrapper = await mountSelection()
+    const input = wrapper.get('[data-testid="import-file"]')
+    Object.defineProperty(input.element, 'files', {
+      value: [new File(['{"app":"something-else"}'], 'x.json', { type: 'application/json' })],
+      configurable: true,
+    })
+    await input.trigger('change')
+    await nextTick()
+    const message = wrapper.get('[data-testid="backup-message"]')
+    expect(message.text()).toContain('not made by OLL Trainer')
+    expect(message.classes()).toContain('text-danger')
+  })
+})
+
+describe('undoing a delete', () => {
+  beforeEach(() => {
+    useSelectionStore().set([27, 21, 33])
+    useSettingsStore().update({ holdMs: 0 })
+  })
+
+  it('offers an undo after Delete, and restores the solve in place', async () => {
+    const wrapper = await mountPractice('train')
+    await doSolve()
+    await doSolve()
+    const [first, second] = useSolvesStore().solves
+
+    key('keydown', { key: 'Delete' })
+    await nextTick()
+    expect(useSolvesStore().count).toBe(1)
+    expect(wrapper.get('[data-testid="undo-toast"]').text()).toContain('Deleted')
+
+    await wrapper.get('[data-testid="undo"]').trigger('click')
+    expect(useSolvesStore().solves.map((s) => s.id)).toEqual([first!.id, second!.id])
+    expect(wrapper.find('[data-testid="undo-toast"]').exists()).toBe(false)
+  })
+
+  it('offers an undo when a solve is deleted from the results list', async () => {
+    const wrapper = await mountPractice('train')
+    await doSolve()
+    const solve = useSolvesStore().solves[0]!
+    await wrapper.get(`[data-testid="delete-${solve.id}"]`).trigger('click')
+    expect(useSolvesStore().count).toBe(0)
+    await wrapper.get('[data-testid="undo"]').trigger('click')
+    expect(useSolvesStore().count).toBe(1)
+  })
+
+  it('can be dismissed without undoing', async () => {
+    const wrapper = await mountPractice('train')
+    await doSolve()
+    key('keydown', { key: 'Delete' })
+    await nextTick()
+    await wrapper.get('[data-testid="dismiss-toast"]').trigger('click')
+    expect(wrapper.find('[data-testid="undo-toast"]').exists()).toBe(false)
+    expect(useSolvesStore().count).toBe(0)
+  })
+
+  it('does not offer an undo for clearing the session, which loses nothing', async () => {
+    const wrapper = await mountPractice('train')
+    await doSolve()
+    key('keydown', { key: 'Delete', shiftKey: true })
+    await nextTick()
+    expect(wrapper.find('[data-testid="undo-toast"]').exists()).toBe(false)
+  })
+})
+
+describe('the case reveal', () => {
+  beforeEach(() => {
+    useSelectionStore().set([27])
+    useSettingsStore().update({ holdMs: 0 })
+  })
+
+  it('draws the orientation that was actually served, not the canonical one', async () => {
+    const wrapper = await mountPractice('train')
+    const scramble = wrapper.get('[data-testid="scramble"]').text()
+    await doSolve()
+
+    const served = patternFromCube(applyMoves(SOLVED, scramble))
+    const drawn = wrapper
+      .findAll('[data-testid="case-reveal"] rect')
+      .map((rect) => [Number(rect.attributes('data-slot')), rect.attributes('data-oriented')])
+    for (const [slot, oriented] of drawn) {
+      expect(oriented, `slot ${slot}`).toBe(served[slot as number] === 1 ? 'true' : 'false')
+    }
+    // And it really is the same case, just turned.
+    expect(patternKey(canonicalPattern(served))).toBe(patternKey(CASES_BY_ID.get(27)!.pattern))
   })
 })

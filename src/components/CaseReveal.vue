@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import OllFace from './OllFace.vue'
 import { formatMs } from '@/core/time'
-import type { OllCase, Rotation } from '@/core/types'
+import type { OllCase, Pattern } from '@/core/types'
 
 defineProps<{
   ollCase: OllCase
   ms: number
-  rotation: Rotation
+  /**
+   * The orientation actually just solved. Cases are stored in a canonical
+   * rotation, but a scramble shows one at any of four angles, and drawing the
+   * canonical picture instead would show a case the solver did not face.
+   */
+  pattern: Pattern
 }>()
 </script>
 
@@ -17,7 +22,7 @@ defineProps<{
     aria-live="polite"
   >
     <div class="w-20 shrink-0 sm:w-24">
-      <OllFace :pattern="ollCase.pattern" :label="`OLL ${ollCase.id}, ${ollCase.name}`" />
+      <OllFace :pattern="pattern" :label="`OLL ${ollCase.id}, ${ollCase.name}`" />
     </div>
 
     <div class="min-w-0 flex-1">
@@ -26,10 +31,7 @@ defineProps<{
         <span class="text-lg">{{ ollCase.name }}</span>
         <span class="font-mono text-lg tabular-nums text-accent">{{ formatMs(ms) }}</span>
       </p>
-      <p class="text-sm text-muted">
-        {{ ollCase.group }}
-        <template v-if="rotation"> · shown from {{ rotation }}</template>
-      </p>
+      <p class="text-sm text-muted">{{ ollCase.group }}</p>
 
       <p class="mt-2 overflow-x-auto font-mono text-sm">{{ ollCase.alg }}</p>
       <!-- Empty until alternative algorithms are generated; see docs/PLAN.md §12. -->

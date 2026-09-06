@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import BackupControls from '@/components/BackupControls.vue'
 import OllFace from '@/components/OllFace.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { GROUPED_CASES } from '@/core/groups'
@@ -101,5 +102,13 @@ const MODE_BLURB: Record<Mode, string> = {
         </li>
       </ul>
     </section>
+    <footer class="mt-10 border-t border-border pt-4">
+      <h2 class="text-sm font-medium">Your data</h2>
+      <p class="mt-1 mb-2 text-sm text-muted">
+        Everything is stored in this browser only. Export it to move to another device, or to keep a
+        copy — clearing your browser data would otherwise lose your history for good.
+      </p>
+      <BackupControls />
+    </footer>
   </main>
 </template>

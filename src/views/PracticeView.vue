@@ -1,20 +1,25 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
+import BackupControls from '@/components/BackupControls.vue'
 import CaseReveal from '@/components/CaseReveal.vue'
 import ResultsPanel from '@/components/ResultsPanel.vue'
 import ScrambleLine from '@/components/ScrambleLine.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import TimerDisplay from '@/components/TimerDisplay.vue'
+import UndoToast from '@/components/UndoToast.vue'
 import { useTimer } from '@/composables/useTimer'
 import { buildModel, learnStatus, pickNext, pickRotation } from '@/core/arts'
+import { applyMoves, SOLVED } from '@/core/cube'
 import { CASES_BY_ID } from '@/core/data/cases'
+import { patternFromCube } from '@/core/pattern'
 import { pickScramble, type PickedScramble } from '@/core/scramble'
+import { formatMs } from '@/core/time'
 import { LIMITS, useSettingsStore } from '@/stores/settings'
 import { useSelectionStore } from '@/stores/selection'
 import { useSolvesStore } from '@/stores/solves'
-import type { Mode } from '@/core/types'
+import type { Mode, Pattern, Solve } from '@/core/types'
 
 const props = defineProps<{ mode: Mode }>()
 
@@ -24,7 +29,7 @@ const selection = useSelectionStore()
 const solves = useSolvesStore()
 
 const current = ref<PickedScramble | null>(null)
-const revealed = ref<{ caseId: number; ms: number; rotation: string } | null>(null)
+const revealed = ref<{ caseId: number; ms: number; pattern: Pattern } | null>(null)
 const showSettings = ref(false)
 /** Where recap has got to. Deliberately not persisted; a session starts fresh. */
 let recapIndex = -1
@@ -82,9 +87,38 @@ function onSolve(ms: number): void {
     ts: Date.now(),
     mode: props.mode,
   })
-  revealed.value = { caseId: picked.caseId, ms, rotation: picked.rotation }
+  revealed.value = {
+    caseId: picked.caseId,
+    ms,
+    pattern: patternFromCube(applyMoves(SOLVED, picked.scramble)),
+  }
   drawNext()
 }
+
+/**
+ * Deleting is undoable rather than confirmed: a dialog on every delete would
+ * be in the way, and a mis-hit Delete during a session is easy to do.
+ */
+const undoable = ref<Solve | null>(null)
+const undoText = computed(() =>
+  undoable.value ? `Deleted ${formatMs(undoable.value.ms)} — OLL ${undoable.value.caseId}` : null,
+)
+let undoTimer: ReturnType<typeof setTimeout> | undefined
+
+function offerUndo(solve: Solve | null): void {
+  if (!solve) return
+  undoable.value = solve
+  clearTimeout(undoTimer)
+  undoTimer = setTimeout(() => (undoable.value = null), 8000)
+}
+
+function undoDelete(): void {
+  if (undoable.value) solves.insert(undoable.value)
+  undoable.value = null
+  clearTimeout(undoTimer)
+}
+
+onBeforeUnmount(() => clearTimeout(undoTimer))
 
 function onShortcut(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
@@ -94,8 +128,15 @@ function onShortcut(event: KeyboardEvent): void {
   }
   if (event.key === 'Delete' || event.key === 'Backspace') {
     event.preventDefault()
-    if (event.shiftKey) solves.clearSession()
-    else if (solves.removeLast()) revealed.value = null
+    if (event.shiftKey) {
+      solves.clearSession()
+      return
+    }
+    const removed = solves.removeLast()
+    if (removed) {
+      revealed.value = null
+      offerUndo(removed)
+    }
     return
   }
   // Drop the case that was just revealed out of the selection, without
@@ -238,6 +279,9 @@ watch(
           "
         />
       </label>
+      <div class="sm:col-span-2">
+        <BackupControls />
+      </div>
       <div class="flex flex-wrap gap-2 sm:col-span-2">
         <button
           type="button"
@@ -283,7 +327,7 @@ watch(
       v-if="revealed && revealedCase"
       :oll-case="revealedCase"
       :ms="revealed.ms"
-      :rotation="revealed.rotation as never"
+      :pattern="revealed.pattern"
     />
 
     <ResultsPanel
@@ -292,7 +336,9 @@ watch(
       :mode="mode"
       :arts-model="artsModel"
       :arts-config="settings.artsConfig"
-      @delete="solves.remove($event)"
+      @delete="offerUndo(solves.remove($event))"
     />
+
+    <UndoToast :text="undoText" @undo="undoDelete()" @dismiss="undoable = null" />
   </main>
 </template>

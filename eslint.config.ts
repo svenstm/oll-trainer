@@ -23,7 +23,16 @@ export default defineConfigWithVueTs(
 
   {
     ...pluginVitest.configs.recommended,
-    files: ['src/**/__tests__/*'],
+    files: ['src/**/*.test.ts', 'src/**/*.dom.test.ts'],
+  },
+
+  {
+    name: 'app/component-names',
+    rules: {
+      // The rule guards against clashing with a real HTML element. These do
+      // not, and docs/PLAN.md §3 names them.
+      'vue/multi-word-component-names': ['error', { ignores: ['Sparkline'] }],
+    },
   },
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),

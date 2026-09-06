@@ -1,36 +1,9 @@
 import { computed } from 'vue'
 import { defineStore } from 'pinia'
 
-import { CASES_BY_ID } from '@/core/data/cases'
-import { ROTATIONS } from '@/core/scramble'
-import { MODES, type Mode, type Rotation, type Solve } from '@/core/types'
-import { asFiniteNumber, asOneOf, isRecord, persistedRef, writeStored } from './persist'
-
-function parseSolve(raw: unknown): Solve | null {
-  if (!isRecord(raw)) return null
-  const caseId = asFiniteNumber(raw.caseId, Number.NaN)
-  const ms = asFiniteNumber(raw.ms, Number.NaN)
-  const ts = asFiniteNumber(raw.ts, Number.NaN)
-  if (!CASES_BY_ID.has(caseId) || !Number.isFinite(ms) || !Number.isFinite(ts)) return null
-  return {
-    id: typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : `${caseId}-${ts}`,
-    caseId,
-    ms,
-    scramble: typeof raw.scramble === 'string' ? raw.scramble : '',
-    rotation: asOneOf<Rotation>(raw.rotation, ROTATIONS, ''),
-    ts,
-    mode: asOneOf<Mode>(raw.mode, MODES, 'train'),
-  }
-}
-
-/** Oldest first, which is what the ARTS replay requires. */
-function parseSolves(raw: unknown): Solve[] | null {
-  if (!Array.isArray(raw)) return null
-  return raw
-    .map(parseSolve)
-    .filter((solve): solve is Solve => solve !== null)
-    .sort((a, b) => a.ts - b.ts)
-}
+import { parseSolves } from '@/core/parse'
+import type { Solve } from '@/core/types'
+import { asFiniteNumber, isRecord, persistedRef, writeStored } from './persist'
 
 function parseSession(raw: unknown): { startedAt: number } | null {
   if (!isRecord(raw)) return null
@@ -96,6 +69,11 @@ export const useSolvesStore = defineStore('solves', () => {
     solves.value = next
   }
 
+  /** Replaces the whole history, for importing a backup. */
+  function replaceAll(next: readonly Solve[]): void {
+    solves.value = [...next].sort((a, b) => a.ts - b.ts)
+  }
+
   function record(input: Omit<Solve, 'id'>): Solve {
     const solve: Solve = { ...input, id: newSolveId(input.ts) }
     insert(solve)
@@ -150,6 +128,7 @@ export const useSolvesStore = defineStore('solves', () => {
     lastSolve,
     count: computed(() => solves.value.length),
     insert,
+    replaceAll,
     record,
     remove,
     removeLast,

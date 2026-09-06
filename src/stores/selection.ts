@@ -1,21 +1,13 @@
 import { computed } from 'vue'
 import { defineStore } from 'pinia'
 
-import { CASES, CASES_BY_ID } from '@/core/data/cases'
+import { CASES } from '@/core/data/cases'
 import { GROUPED_CASES } from '@/core/groups'
+import { parseSelection } from '@/core/parse'
 import type { OllGroup } from '@/core/types'
 import { persistedRef } from './persist'
 
 const ALL_IDS = CASES.map((c) => c.id)
-
-/** Unknown ids are dropped, so hand-edited or stale storage cannot break practice. */
-function parseSelection(raw: unknown): number[] | null {
-  if (!Array.isArray(raw)) return null
-  const ids = [...new Set(raw.filter((id): id is number => typeof id === 'number'))]
-    .filter((id) => CASES_BY_ID.has(id))
-    .sort((a, b) => a - b)
-  return ids
-}
 
 export const useSelectionStore = defineStore('selection', () => {
   // A new visitor gets everything selected, so the app is usable immediately

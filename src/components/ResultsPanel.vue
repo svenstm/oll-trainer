@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import OllFace from './OllFace.vue'
+import Sparkline from './Sparkline.vue'
 import StrengthBar from './StrengthBar.vue'
 import { CASES_BY_ID } from '@/core/data/cases'
 import { formatMs, mean, statsFor } from '@/core/time'
@@ -32,6 +33,8 @@ interface CaseRow {
   count: number
   mean: number | null
   best: number | null
+  /** Chronological, for the sparkline. */
+  times: number[]
 }
 
 /**
@@ -52,6 +55,7 @@ const caseRows = computed<CaseRow[]>(() => {
       count: times.length,
       mean: mean(times),
       best: times.length > 0 ? Math.min(...times) : null,
+      times,
     }))
     .sort((a, b) => (b.mean ?? 0) - (a.mean ?? 0))
 })
@@ -141,6 +145,9 @@ const SUMMARY = [
             <td class="py-1.5 pr-2 text-right tabular-nums text-muted">{{ row.count }}x</td>
             <td class="py-1.5 pr-2 text-right font-mono tabular-nums">
               {{ row.mean === null ? '—' : formatMs(row.mean) }}
+            </td>
+            <td class="py-1.5 pr-2 text-right text-muted">
+              <Sparkline :values="row.times" />
             </td>
             <td v-if="mode === 'learn'" class="py-1.5 pr-3 text-right">
               <StrengthBar
