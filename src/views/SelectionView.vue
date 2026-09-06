@@ -19,13 +19,14 @@ const MODE_BLURB: Record<Mode, string> = {
 <template>
   <main class="mx-auto max-w-5xl px-4 py-6 sm:px-6">
     <header class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold">OLL Trainer</h1>
+      <h1 class="text-2xl font-semibold tracking-tight">OLL Trainer</h1>
       <ThemeToggle />
     </header>
 
     <div class="mt-4 flex flex-wrap items-center gap-2">
       <p class="mr-auto text-sm text-muted" data-testid="selection-count">
-        <strong class="text-fg">{{ selection.count }}</strong> of {{ selection.total }} selected
+        <strong class="text-fg tabular-nums">{{ selection.count }}</strong> of
+        {{ selection.total }} selected
       </p>
       <button
         type="button"
@@ -50,7 +51,7 @@ const MODE_BLURB: Record<Mode, string> = {
         v-for="mode in MODES"
         :key="mode"
         :to="{ name: 'practice', params: { mode } }"
-        class="rounded-xl border border-border bg-surface p-3 transition-colors hover:border-accent aria-disabled:pointer-events-none aria-disabled:opacity-40"
+        class="rounded-tile border border-border bg-surface p-4 transition-colors hover:border-accent aria-disabled:pointer-events-none aria-disabled:opacity-40"
         :aria-disabled="selection.isEmpty"
         :tabindex="selection.isEmpty ? -1 : undefined"
         :data-testid="`mode-${mode}`"
@@ -66,16 +67,18 @@ const MODE_BLURB: Record<Mode, string> = {
     <section v-for="group in GROUPED_CASES" :key="group.name" class="mt-6">
       <button
         type="button"
-        class="flex w-full items-baseline gap-2 border-b border-border pb-1 text-left"
+        class="group/header flex w-full items-baseline gap-2 border-b border-border pb-1.5 text-left"
         :data-testid="`group-${group.name}`"
         :aria-pressed="selection.groupState(group.name) === 'all'"
         @click="selection.toggleGroup(group.name)"
       >
         <span class="font-medium">{{ group.name }}</span>
-        <span class="text-sm text-muted">
+        <span class="text-sm text-muted tabular-nums">
           {{ group.cases.filter((c) => selection.has(c.id)).length }}/{{ group.cases.length }}
         </span>
-        <span class="ml-auto text-xs text-muted">
+        <span
+          class="ml-auto text-xs text-muted opacity-0 transition-opacity group-hover/header:opacity-100 group-focus-visible/header:opacity-100"
+        >
           {{ selection.groupState(group.name) === 'all' ? 'Deselect group' : 'Select group' }}
         </span>
       </button>
@@ -84,19 +87,23 @@ const MODE_BLURB: Record<Mode, string> = {
         <li v-for="ollCase in group.cases" :key="ollCase.id">
           <button
             type="button"
-            class="w-full rounded-xl border-2 p-1.5 transition-colors"
+            class="w-full rounded-tile border p-2 transition-[background-color,border-color,box-shadow] duration-150"
             :class="
               selection.has(ollCase.id)
-                ? 'border-accent bg-surface'
-                : 'border-transparent bg-surface/40 opacity-50 hover:opacity-80'
+                ? 'border-accent bg-surface shadow-sm'
+                : 'stickers-off border-border bg-transparent hover:border-muted'
             "
             :aria-pressed="selection.has(ollCase.id)"
             :data-testid="`case-${ollCase.id}`"
             @click="selection.toggle(ollCase.id)"
           >
             <OllFace :pattern="ollCase.pattern" :label="`OLL ${ollCase.id}, ${ollCase.name}`" />
-            <span class="mt-1 block truncate text-xs text-muted">
-              {{ ollCase.id }} · {{ ollCase.name }}
+            <span
+              class="mt-1.5 block truncate text-center text-[0.7rem] leading-tight"
+              :class="selection.has(ollCase.id) ? 'text-fg' : 'text-muted'"
+            >
+              <span class="tabular-nums">{{ ollCase.id }}</span>
+              <span class="ml-1 opacity-70">{{ ollCase.name }}</span>
             </span>
           </button>
         </li>

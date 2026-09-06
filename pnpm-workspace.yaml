@@ -1,5 +1,7 @@
-# pnpm 11 refuses to finish an install that has unapproved build scripts, so
-# the ones this project needs are declared here rather than approved by hand
-# on each machine. esbuild's postinstall links the platform binary Vite uses.
-onlyBuiltDependencies:
-  - esbuild
+# pnpm 11 refuses to finish an install whose dependencies have unapproved build
+# scripts, and approval is otherwise per-machine. Declaring it here keeps CI and
+# a fresh clone working without anyone running `pnpm approve-builds` by hand.
+#
+# esbuild's postinstall links the platform binary Vite uses.
+allowBuilds:
+  esbuild: true
