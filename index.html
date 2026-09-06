@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Practice all 57 OLL cases with adaptive scheduling." />
+    <title>OLL Trainer</title>
+    <script>
+      // Applied before first paint so a dark-theme reload does not flash white.
+      // Key and shape are defined in docs/PLAN.md §6.
+      try {
+        var theme = JSON.parse(localStorage.getItem('ollTrainer.v1.settings') || '{}').theme
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.dataset.theme = theme
+        }
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

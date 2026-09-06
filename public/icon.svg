@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OLL Trainer">
+  <rect width="512" height="512" rx="96" fill="#0b0f14" />
+  <g transform="translate(96 96)">
+    <rect width="320" height="320" rx="24" fill="#1b222c" />
+    <g fill="#f2c53d">
+      <rect x="24" y="24" width="80" height="80" rx="10" />
+      <rect x="120" y="24" width="80" height="80" rx="10" />
+      <rect x="120" y="120" width="80" height="80" rx="10" />
+      <rect x="24" y="216" width="80" height="80" rx="10" />
+      <rect x="216" y="120" width="80" height="80" rx="10" />
+      <rect x="216" y="216" width="80" height="80" rx="10" />
+    </g>
+    <g fill="#3a4453">
+      <rect x="216" y="24" width="80" height="80" rx="10" />
+      <rect x="24" y="120" width="80" height="80" rx="10" />
+      <rect x="120" y="216" width="80" height="80" rx="10" />
+    </g>
+  </g>
+</svg>

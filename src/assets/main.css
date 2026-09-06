@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+/*
+ * Theme is a `data-theme` attribute on <html>: "light" | "dark" | absent.
+ * Absent means "system", so the media query must not override an explicit
+ * light choice — hence the :not([data-theme='light']) guard.
+ */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * `inline` so utilities emit `var(--bg)` rather than a build-time frozen value.
+ * That is what lets the palette be swapped at runtime by the blocks below.
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-ready: var(--ready);
+  --color-danger: var(--danger);
+
+  --color-sticker-up: var(--sticker-up);
+  --color-sticker-side: var(--sticker-side);
+  --color-sticker-none: var(--sticker-none);
+
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+:root {
+  color-scheme: light;
+
+  --bg: oklch(98.5% 0.003 250);
+  --surface: oklch(100% 0 0);
+  --border: oklch(90% 0.006 250);
+  --fg: oklch(22% 0.02 255);
+  --muted: oklch(52% 0.02 255);
+  --accent: oklch(55% 0.17 260);
+  --ready: oklch(62% 0.17 145);
+  --danger: oklch(58% 0.19 25);
+
+  --sticker-up: oklch(85% 0.17 95);
+  --sticker-side: oklch(85% 0.17 95);
+  --sticker-none: oklch(38% 0.01 255);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --bg: oklch(17% 0.015 255);
+    --surface: oklch(21% 0.017 255);
+    --border: oklch(30% 0.02 255);
+    --fg: oklch(94% 0.005 250);
+    --muted: oklch(65% 0.02 255);
+    --accent: oklch(70% 0.15 260);
+    --ready: oklch(72% 0.18 145);
+    --danger: oklch(68% 0.18 25);
+
+    --sticker-up: oklch(82% 0.17 95);
+    --sticker-side: oklch(82% 0.17 95);
+    --sticker-none: oklch(32% 0.01 255);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: oklch(17% 0.015 255);
+  --surface: oklch(21% 0.017 255);
+  --border: oklch(30% 0.02 255);
+  --fg: oklch(94% 0.005 250);
+  --muted: oklch(65% 0.02 255);
+  --accent: oklch(70% 0.15 260);
+  --ready: oklch(72% 0.18 145);
+  --danger: oklch(68% 0.18 25);
+
+  --sticker-up: oklch(82% 0.17 95);
+  --sticker-side: oklch(82% 0.17 95);
+  --sticker-none: oklch(32% 0.01 255);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  /* The timer is driven by keys and taps; text selection only gets in the way. */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
