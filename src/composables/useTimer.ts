@@ -27,11 +27,19 @@ export interface UseTimerOptions {
   onShortcut?: (event: KeyboardEvent) => void
 }
 
-/** Typing in a settings field must not arm the timer. */
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable) return true
-  return ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+/**
+ * Anything the user is meant to be able to operate directly.
+ *
+ * Space activates a focused button and a tap presses it, so neither may also
+ * drive the timer — otherwise every control in the view stops working, and
+ * dragging a settings slider arms a solve.
+ */
+const INTERACTIVE = 'button, a[href], input, select, textarea, label, summary, [role="tab"]'
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  if (target instanceof HTMLElement && target.isContentEditable) return true
+  return target.closest(INTERACTIVE) !== null
 }
 
 export function useTimer(options: UseTimerOptions) {
@@ -87,14 +95,17 @@ export function useTimer(options: UseTimerOptions) {
 
   function onKeyDown(event: KeyboardEvent): void {
     // Holding a key repeats; only the first press is a press.
-    if (event.repeat || isTypingTarget(event.target)) return
+    if (event.repeat) return
 
     if (state.value.phase === 'running') {
-      // Any key stops the timer, including the shortcut keys.
+      // Any key stops the timer, including the shortcut keys. This one ignores
+      // the focused element: during a solve, stopping comes first.
       event.preventDefault()
       dispatch('down')
       return
     }
+
+    if (isInteractiveTarget(event.target)) return
     if (event.key === 'Escape') {
       dispatch('cancel')
       options.onShortcut?.(event)
@@ -110,21 +121,26 @@ export function useTimer(options: UseTimerOptions) {
   }
 
   function onKeyUp(event: KeyboardEvent): void {
-    if (isTypingTarget(event.target)) return
-    // After a stop, any release re-arms; before it, only space is the timer key.
-    if (state.value.phase === 'stopped' || event.key === ' ') dispatch('up')
+    // A release after a stop always re-arms, whatever has focus, so the key
+    // that stopped the timer cannot leave it stuck in `stopped`.
+    if (state.value.phase === 'stopped') {
+      dispatch('up')
+      return
+    }
+    if (isInteractiveTarget(event.target)) return
+    if (event.key === ' ') dispatch('up')
   }
 
   function onTouchStart(event: TouchEvent): void {
-    if (isTypingTarget(event.target)) return
+    if (isInteractiveTarget(event.target)) return
     // Stops the tap becoming a synthesised click on whatever is underneath.
-    event.preventDefault()
+    if (event.cancelable) event.preventDefault()
     dispatch('down')
   }
 
   function onTouchEnd(event: TouchEvent): void {
-    if (isTypingTarget(event.target)) return
-    event.preventDefault()
+    if (state.value.phase !== 'stopped' && isInteractiveTarget(event.target)) return
+    if (event.cancelable) event.preventDefault()
     dispatch('up')
   }
 

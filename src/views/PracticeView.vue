@@ -200,10 +200,7 @@ watch(
 </script>
 
 <template>
-  <main
-    class="no-select mx-auto flex min-h-full max-w-5xl flex-col gap-4 px-4 py-3 sm:gap-5 sm:px-6 sm:py-4"
-    v-on="touchHandlers"
-  >
+  <main class="mx-auto flex min-h-full max-w-5xl flex-col gap-4 px-4 py-3 sm:gap-5 sm:px-6 sm:py-4">
     <!--
       One row on every width. The learn status goes underneath rather than
       inline, which on a phone would push the buttons onto a third row.
@@ -328,28 +325,36 @@ watch(
       </div>
     </section>
 
-    <ScrambleLine
-      v-if="current"
-      :scramble="current.scramble"
-      :size="settings.scrambleSize"
-      class="mx-auto max-w-3xl text-center"
-    />
-
     <!--
-      grow, so the tappable area is the whole middle of the screen rather than
-      just the digits. On a phone this is the only thing you aim at.
+      The touch surface, and *only* this. It grows so a phone gets a target the
+      size of the screen's middle, but the header, the settings panel and the
+      results list stay outside it — with the handlers on <main> every tap in
+      the view was swallowed and no button or scroll gesture worked.
+
+      touch-none because this element handles the gesture itself; the rest of
+      the page still scrolls normally.
     -->
-    <div class="flex grow flex-col items-center justify-center gap-2 py-4 sm:grow-0 sm:py-10">
+    <section
+      class="no-select flex grow touch-none flex-col items-center justify-center gap-4 py-4 sm:grow-0 sm:py-8"
+      data-testid="timer-surface"
+      v-on="touchHandlers"
+    >
+      <ScrambleLine
+        v-if="current"
+        :scramble="current.scramble"
+        :size="settings.scrambleSize"
+        class="mx-auto max-w-3xl text-center"
+      />
       <TimerDisplay :ms="displayMs" :phase="phase" :size="settings.timerSize" />
       <p class="h-5 text-center text-sm text-muted">
         <template v-if="phase === 'idle'">
           <span class="hidden sm:inline">Hold space to get ready, release to start.</span>
-          <span class="sm:hidden">Hold to get ready, release to start.</span>
+          <span class="sm:hidden">Hold here to get ready, release to start.</span>
         </template>
         <template v-else-if="phase === 'holding'">Keep holding…</template>
         <template v-else-if="armed">Release to start.</template>
       </p>
-    </div>
+    </section>
 
     <Transition
       enter-active-class="transition duration-200 ease-out"

@@ -455,3 +455,53 @@ describe('the case reveal', () => {
     expect(patternKey(canonicalPattern(served))).toBe(patternKey(CASES_BY_ID.get(27)!.pattern))
   })
 })
+
+describe('touch does not swallow the interface', () => {
+  beforeEach(() => {
+    useSelectionStore().set([27, 21])
+    useSettingsStore().update({ holdMs: 0 })
+  })
+
+  it('keeps the touch surface off the header and the results', async () => {
+    const wrapper = await mountPractice('train')
+    const surface = wrapper.get('[data-testid="timer-surface"]')
+    // The controls must not live inside the element that handles the gesture.
+    for (const testid of ['back', 'settings-toggle', 'theme-toggle', 'tab-cases']) {
+      expect(surface.find(`[data-testid="${testid}"]`).exists(), testid).toBe(false)
+      expect(wrapper.find(`[data-testid="${testid}"]`).exists(), testid).toBe(true)
+    }
+  })
+
+  it('still lets every control be used after a solve', async () => {
+    const wrapper = await mountPractice('train')
+    await doSolve()
+
+    // Regression: with the handlers on <main> these taps were all prevented.
+    await wrapper.get('[data-testid="tab-cases"]').trigger('click')
+    expect(wrapper.find('[data-testid="panel-cases"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="settings-toggle"]').trigger('click')
+    expect(wrapper.find('[data-testid="settings"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="clear-session"]').trigger('click')
+    expect(useSolvesStore().sessionSolves).toHaveLength(0)
+    expect(useSolvesStore().count).toBe(1)
+  })
+
+  it('arms from a tap on the timer surface', async () => {
+    const wrapper = await mountPractice('train')
+    const surface = wrapper.get('[data-testid="timer-surface"]')
+    await surface.trigger('touchstart')
+    expect(wrapper.get('[data-testid="timer"]').attributes('data-phase')).toBe('ready')
+    await surface.trigger('touchend')
+    expect(wrapper.get('[data-testid="timer"]').attributes('data-phase')).toBe('running')
+    await surface.trigger('touchstart')
+    expect(useSolvesStore().count).toBe(1)
+  })
+
+  it('does not arm when a control inside the app is tapped', async () => {
+    const wrapper = await mountPractice('train')
+    await wrapper.get('[data-testid="settings-toggle"]').trigger('touchstart')
+    expect(wrapper.get('[data-testid="timer"]').attributes('data-phase')).toBe('idle')
+  })
+})

@@ -3,6 +3,9 @@ import { defineComponent, h, ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { useTimer } from './useTimer'
 
+const key = (type: 'keydown' | 'keyup', init: KeyboardEventInit) =>
+  window.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, ...init }))
+
 /** Mounts a component that does nothing but run the composable. */
 function harness(holdMs = 0) {
   const solves: number[] = []
@@ -18,14 +21,28 @@ function harness(holdMs = 0) {
           onSolve: (ms) => solves.push(ms),
           onShortcut: (event) => shortcuts.push(event.key),
         })
-        return () => h('div', [h('input'), api.phase.value])
+        // Bound the way PracticeView binds them, so a dispatched touch event
+        // travels the real path: up to the surface, with the control as target.
+        return () =>
+          h(
+            'section',
+            {
+              'data-testid': 'surface',
+              onTouchstart: api.touchHandlers.touchstart,
+              onTouchend: api.touchHandlers.touchend,
+            },
+            [
+              h('input'),
+              h('button', { 'data-testid': 'btn' }, 'press me'),
+              h('a', { href: '#x', 'data-testid': 'link' }, 'go'),
+              h('span', { 'data-testid': 'plain' }, 'not interactive'),
+              api.phase.value,
+            ],
+          )
       },
     }),
     { attachTo: document.body },
   )
-
-  const key = (type: 'keydown' | 'keyup', init: KeyboardEventInit) =>
-    window.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, ...init }))
 
   return { wrapper, solves, shortcuts, hold, key, api: () => api }
 }
@@ -124,6 +141,73 @@ describe('useTimer keyboard wiring', () => {
     expect(api().phase.value).toBe('idle')
     expect(solves).toEqual([])
     expect(shortcuts).toEqual(['Escape'])
+  })
+
+  // Regression: the touch handlers were on <main>, which covers the whole
+  // screen, so every tap in the practice view armed the timer and had its
+  // click prevented. No control in the view worked on a phone.
+  describe('taps and keys aimed at a control', () => {
+    it.each(['btn', 'link', 'input'])('leave the timer alone for %s', (which) => {
+      const { wrapper, api, solves } = harness(0)
+      const target =
+        which === 'input'
+          ? wrapper.find('input').element
+          : wrapper.get(`[data-testid="${which}"]`).element
+
+      // Dispatched *on* the control, so it bubbles to the surface with the
+      // control as target — exactly what happens when a thumb lands on it.
+      const tap = new TouchEvent('touchstart', { cancelable: true, bubbles: true })
+      target.dispatchEvent(tap)
+      target.dispatchEvent(
+        new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }),
+      )
+
+      expect(api().phase.value).toBe('idle')
+      expect(solves).toEqual([])
+      // And the tap is not swallowed, so the control still activates.
+      expect(tap.defaultPrevented).toBe(false)
+    })
+
+    it('still arms from a tap on the surface itself', () => {
+      const { wrapper, api } = harness(0)
+      wrapper
+        .get('[data-testid="plain"]')
+        .element.dispatchEvent(new TouchEvent('touchstart', { cancelable: true, bubbles: true }))
+      expect(api().phase.value).toBe('ready')
+    })
+
+    it('does not let space on a focused button arm instead of pressing it', () => {
+      const { wrapper, api } = harness(0)
+      const button = wrapper.get('[data-testid="btn"]').element as HTMLButtonElement
+      button.focus()
+      const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+      button.dispatchEvent(event)
+      expect(api().phase.value).toBe('idle')
+      // Not prevented, so the browser's own activation still happens.
+      expect(event.defaultPrevented).toBe(false)
+    })
+
+    it('still stops a running timer, whatever has focus', () => {
+      const { wrapper, api, solves } = harness(0)
+      key('keydown', { key: ' ' })
+      key('keyup', { key: ' ' })
+      const button = wrapper.get('[data-testid="btn"]').element
+      button.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+      )
+      expect(solves).toHaveLength(1)
+      expect(api().phase.value).toBe('stopped')
+    })
+
+    it('releases out of stopped even with a control focused', () => {
+      const { wrapper, api } = harness(0)
+      key('keydown', { key: ' ' })
+      key('keyup', { key: ' ' })
+      key('keydown', { key: 'a' })
+      const button = wrapper.get('[data-testid="btn"]').element
+      button.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true }))
+      expect(api().phase.value).toBe('idle')
+    })
   })
 
   it('does nothing while the user is typing in a field', () => {
