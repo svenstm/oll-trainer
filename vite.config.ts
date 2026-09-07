@@ -38,7 +38,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon.png'],
+      // No `includeAssets`: the workbox globPatterns below already match
+      // everything in public/, so listing files here only double-counts them.
+      // (The plugin still lists the manifest icons separately, so the build's
+      // reported entry count stays a little above the 14 workbox stores.)
       manifest: {
         id: BASE_PATH,
         name: 'OLL Trainer',

@@ -40,6 +40,25 @@ either that solver or a second hand-entered algorithm per case; the latter
 doubles the one table the plan calls the single place a human typo can enter
 the pipeline.
 
+## A browser-driven offline check was added (§10, phase 1)
+
+The plan's test list stops at `core/`, the stores, and happy-dom component
+tests, and phase 1 scaffolds with e2e declined. That left the README's
+headline "works offline" claim — the reason `vite-plugin-pwa` is in the
+project at all — with nothing testing it. happy-dom has no service worker, so
+no test in the planned set can reach it.
+
+`pnpm verify:offline` (`scripts/verify-offline.ts`) closes that gap without
+becoming an e2e suite: it drives headless Chrome over the DevTools protocol
+using Node's built-in `WebSocket` and `fetch`, so it adds no dependency, and
+it asserts service-worker behaviour rather than UI behaviour. It serves the
+build through a server that reproduces the two GitHub Pages properties
+`vite preview` does not — a base path and no SPA rewrite — so the `404.html`
+fallback is exercised as deployed.
+
+It stays out of CI, which is why it is a script and not a test: it needs a
+real browser and a real service worker.
+
 ## ARTS constants
 
 See [`arts-recalibration.md`](arts-recalibration.md). `strengthSpan` changed on

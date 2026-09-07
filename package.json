@@ -12,7 +12,7 @@
     "type-check": "vue-tsc --build",
     "test": "vitest run",
     "test:unit": "vitest",
-    "lint": "run-s \"lint:*\"",
+    "lint": "run-s lint:oxlint lint:eslint",
     "lint:oxlint": "oxlint .",
     "lint:eslint": "eslint . --cache",
     "lint:fix": "oxlint . --fix && eslint . --fix --cache",
@@ -22,7 +22,8 @@
     "data:scrambles": "tsx scripts/generate-scrambles.ts && prettier --write --experimental-cli src/core/data",
     "data:print": "tsx scripts/print-cases.ts",
     "arts:simulate": "tsx scripts/simulate-arts.ts",
-    "data:icons": "tsx scripts/generate-icons.ts"
+    "data:icons": "tsx scripts/generate-icons.ts",
+    "verify:offline": "vite build && tsx scripts/verify-offline.ts"
   },
   "dependencies": {
     "pinia": "^4.0.2",

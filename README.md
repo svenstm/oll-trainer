@@ -39,7 +39,15 @@ pnpm type-check
 pnpm lint
 pnpm build          # production build into dist/
 pnpm preview
+pnpm verify:offline # build, then prove the PWA works with the network cut
 ```
+
+`pnpm verify:offline` is the only check that reaches the "works offline"
+claim above. It serves the build the way GitHub Pages does — under a base
+path, with no SPA rewrite — installs the service worker in headless Chrome,
+cuts the renderer's network, and then boots the app cold at the root and at a
+deep link. It needs a local Chrome (set `CHROME_PATH` if it cannot find one)
+and so runs by hand rather than in CI.
 
 ### Layout
 
@@ -48,7 +56,8 @@ pnpm preview
 - `src/stores/` — Pinia stores, `localStorage`-backed.
 - `src/components/`, `src/views/` — the UI. Component tests are `*.dom.test.ts`
   and run under happy-dom.
-- `scripts/` — dev-only data generation, run by hand; output is committed.
+- `scripts/` — dev-only data generation and the offline check, run by hand;
+  generated output is committed.
 
 The plan this was built against lives in [`docs/PLAN.md`](docs/PLAN.md), kept
 as written. Where the finished app departs from it, and why, is recorded in
