@@ -1,21 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
-import { createMemoryHistory, createRouter, type Router } from 'vue-router'
+import { createMemoryHistory, createRouter, type RouteRecordRaw, type Router } from 'vue-router'
 import { nextTick } from 'vue'
 
+import LandingView from './LandingView.vue'
 import PracticeView from './PracticeView.vue'
 import SelectionView from './SelectionView.vue'
+import OllFace from '@/components/OllFace.vue'
 import ResultsPanel from '@/components/ResultsPanel.vue'
 import { applyMoves, SOLVED } from '@/core/cube'
 import { CASES_BY_ID } from '@/core/data/cases'
 import { GROUPED_CASES } from '@/core/groups'
 import { canonicalPattern, patternFromCube, patternKey } from '@/core/pattern'
+import { routes } from '@/router'
 import { resetStorageCache } from '@/stores/persist'
 import { useSelectionStore } from '@/stores/selection'
 import { useSettingsStore } from '@/stores/settings'
 import { useSolvesStore } from '@/stores/solves'
-import { isMode, type Mode, type Solve } from '@/core/types'
+import type { Mode, Solve } from '@/core/types'
 
 let pinia: Pinia
 let router: Router
@@ -24,23 +27,15 @@ let router: Router
 // let one test's timer respond to the next test's keystrokes.
 enableAutoUnmount(afterEach)
 
+/**
+ * The app's real route table, under a memory history. Restating the routes
+ * here would let these tests pass while the paths the app actually ships are
+ * wrong — which is exactly what moving the trainer to /oll-trainer risked.
+ */
 function makeRouter(): Router {
   return createRouter({
     history: createMemoryHistory(),
-    routes: [
-      { path: '/', name: 'selection', component: SelectionView },
-      {
-        path: '/practice/:mode',
-        name: 'practice',
-        component: PracticeView,
-        props: true,
-        beforeEnter: (to) => {
-          if (!isMode(to.params.mode)) return { name: 'selection' }
-          return useSelectionStore().isEmpty ? { name: 'selection' } : true
-        },
-      },
-      { path: '/:pathMatch(.*)*', redirect: { name: 'selection' } },
-    ],
+    routes: routes as RouteRecordRaw[],
   })
 }
 
@@ -50,7 +45,7 @@ beforeEach(async () => {
   pinia = createPinia()
   setActivePinia(pinia)
   router = makeRouter()
-  await router.push('/')
+  await router.push('/oll-trainer')
   await router.isReady()
 })
 
@@ -60,6 +55,12 @@ function options() {
 
 async function mountSelection() {
   const wrapper = mount(SelectionView, options())
+  await nextTick()
+  return wrapper
+}
+
+async function mountLanding() {
+  const wrapper = mount(LandingView, options())
   await nextTick()
   return wrapper
 }
@@ -125,6 +126,46 @@ describe('SelectionView', () => {
   })
 })
 
+describe('LandingView', () => {
+  it('leads with the tagline', async () => {
+    const wrapper = await mountLanding()
+    expect(wrapper.get('h1').text()).toBe('The Art of the Last Layer')
+  })
+
+  it('shows one face per shape group, so the grid cannot silently empty', async () => {
+    const wrapper = await mountLanding()
+    expect(wrapper.findAllComponents(OllFace)).toHaveLength(GROUPED_CASES.length + 1) // + the Sune mark
+  })
+
+  it('points its call to action at the trainer', async () => {
+    const wrapper = await mountLanding()
+    const href = wrapper.get('[data-testid="landing-cta"]').attributes('href')
+    expect(href).toBe('/oll-trainer')
+  })
+})
+
+describe('where the pages live', () => {
+  it('puts the landing page on the domain root', async () => {
+    await router.push('/')
+    expect(router.currentRoute.value.name).toBe('landing')
+  })
+
+  it('puts the trainer under /oll-trainer', async () => {
+    await router.push('/oll-trainer')
+    expect(router.currentRoute.value.name).toBe('selection')
+  })
+
+  it('sends an unknown path to the landing page', async () => {
+    await router.push('/no-such-page')
+    expect(router.currentRoute.value.name).toBe('landing')
+  })
+
+  it('offers a way back to the landing page from the trainer', async () => {
+    const wrapper = await mountSelection()
+    expect(wrapper.get('[data-testid="home-link"]').attributes('href')).toBe('/')
+  })
+})
+
 describe('the route guard', () => {
   it('lets practice through when something is selected', async () => {
     await router.push({ name: 'practice', params: { mode: 'train' } })
@@ -138,7 +179,7 @@ describe('the route guard', () => {
   })
 
   it('rejects a mode that is not a mode', async () => {
-    await router.push('/practice/nonsense')
+    await router.push('/oll-trainer/practice/nonsense')
     expect(router.currentRoute.value.name).toBe('selection')
   })
 

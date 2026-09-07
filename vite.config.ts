@@ -15,6 +15,9 @@ import { VitePWA } from 'vite-plugin-pwa'
  */
 const BASE_PATH = '/'
 
+/** The trainer itself; '/' is the landing page. Must match the router. */
+const TRAINER_PATH = '/oll-trainer'
+
 /**
  * GitHub Pages has no SPA rewrite, so a hard refresh of /practice/learn 404s.
  * Pages serves 404.html for any unmatched path; making it a copy of index.html
@@ -52,7 +55,10 @@ export default defineConfig({
         name: 'OLL Trainer',
         short_name: 'OLL Trainer',
         description: 'Practice all 57 OLL cases with adaptive scheduling.',
-        start_url: BASE_PATH,
+        // Straight into the trainer: an installed app should not open on the
+        // landing page, which exists to pitch the app to people who do not
+        // have it yet.
+        start_url: TRAINER_PATH,
         scope: BASE_PATH,
         display: 'standalone',
         orientation: 'any',

@@ -4,10 +4,10 @@
  *
  * It serves `dist/` the way GitHub Pages does, loads the app in headless
  * Chrome, waits for the service worker to finish precaching, cuts the
- * renderer's network, and then boots the app cold twice: once at the root and
- * once at a deep link. A deep link is the interesting case, because offline it
- * can only work if the service worker's navigation fallback answers and the
- * lazily-loaded practice chunk was precached.
+ * renderer's network, and then boots every page cold: the landing page, the
+ * case grid, and a practice deep link. The deeper routes are the interesting
+ * ones, because offline they can only work if the service worker's navigation
+ * fallback answers and the lazily-loaded route chunks were precached.
  *
  * Run with `pnpm verify:offline`, which builds first. Local only — CI does not
  * run this, because it needs a browser and a real service worker.
@@ -27,8 +27,50 @@ const DIST = fileURLToPath(new URL('../dist', import.meta.url))
 /** Entries workbox is expected to store. Fewer means something fell out. */
 const MIN_PRECACHE_ENTRIES = 14
 
-/** The deep link to boot cold while offline. */
-const DEEP_LINK = 'practice/train'
+/**
+ * Every page the site serves, each with a probe that proves the page actually
+ * rendered rather than merely returning HTML. A blank SPA shell returns 200
+ * and precaches fine, so counting bytes would not catch a broken boot.
+ *
+ * Paths are relative to the deployed base path.
+ */
+interface PageProbe {
+  path: string
+  label: string
+  /** Expression evaluated in the page; its value is handed to `ok`. */
+  probe: string
+  ok: (value: number) => boolean
+  detail: (value: number) => string
+}
+
+const PAGES: readonly PageProbe[] = [
+  {
+    path: '',
+    label: 'landing page',
+    // One case face per shape group, plus the Sune mark in the hero.
+    probe: 'document.querySelectorAll("svg").length',
+    ok: (n) => n >= 15,
+    detail: (n) => `${n} svg elements`,
+  },
+  {
+    path: 'oll-trainer',
+    label: 'case grid',
+    probe: 'document.querySelectorAll("[data-testid^=\'case-\']").length',
+    ok: (n) => n === 57,
+    detail: (n) => `${n} case tiles`,
+  },
+  {
+    path: 'oll-trainer/practice/train',
+    label: 'practice deep link',
+    // A scramble and a timer mean the lazily-loaded chunk booted and ran.
+    probe: `
+      (document.querySelector('[data-testid="scramble"]')?.textContent?.trim().length ?? 0) > 0 &&
+      (document.querySelector('[data-testid="timer"]') !== null) ? 1 : 0
+    `,
+    ok: (n) => n === 1,
+    detail: (n) => (n === 1 ? 'scramble and timer rendered' : 'no scramble or timer'),
+  },
+]
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
@@ -391,8 +433,9 @@ async function main(): Promise<void> {
     const title = await cdp.evaluate<string>('document.title')
     check('online: root loads', title.length > 0, `title=${JSON.stringify(title)}`)
 
-    const faces = await cdp.evaluate<number>('document.querySelectorAll("svg").length')
-    check('online: all 57 case faces render', faces >= 57, `${faces} svg elements`)
+    const landing = PAGES[0]!
+    const heroFaces = await cdp.evaluate<number>(landing.probe)
+    check(`online: ${landing.label} renders`, landing.ok(heroFaces), landing.detail(heroFaces))
 
     // `navigator.serviceWorker.ready` resolves as soon as there is an active
     // worker, which can still be 'activating' while it precaches, so poll for
@@ -445,10 +488,14 @@ async function main(): Promise<void> {
       })()
     `)
 
-    // The lazily-loaded practice chunk is the one that a naive precache misses,
-    // and its absence would only show up on an offline deep link.
-    const hasPracticeChunk = cachedPaths.some((p) => /\/assets\/PracticeView-.*\.js$/.test(p))
-    check('precache includes the lazy practice chunk', hasPracticeChunk)
+    // The lazily-loaded route chunks are what a naive precache misses, and
+    // their absence would only show up on an offline deep link.
+    for (const chunk of ['SelectionView', 'PracticeView']) {
+      check(
+        `precache includes the lazy ${chunk} chunk`,
+        cachedPaths.some((p) => new RegExp(`/assets/${chunk}-.*\\.js$`).test(p)),
+      )
+    }
 
     const hasSpaFallback = cachedPaths.some((p) => p.endsWith('/404.html'))
     check('precache includes the Pages 404 fallback', hasSpaFallback)
@@ -461,41 +508,36 @@ async function main(): Promise<void> {
       uploadThroughput: 0,
     })
 
-    cdp.clearEvents()
-    await cdp.navigate(server.origin + basePath)
-    const offlineFaces = await cdp.evaluate<number>('document.querySelectorAll("svg").length')
-    check('offline: root boots from cache', offlineFaces >= 57, `${offlineFaces} svg elements`)
+    // Every page, booted cold from cache. Each navigation is a fresh document,
+    // so this is the real "opened the app with no network" path rather than
+    // client-side routing around an already-loaded bundle.
+    for (const page of PAGES) {
+      const url = server.origin + basePath + page.path
+      cdp.clearEvents()
+      await cdp.navigate(url)
 
-    const rootFailures = cdp.failedRequests()
-    check(
-      'offline: nothing fails to load on the root',
-      rootFailures.length === 0,
-      rootFailures.join('; ') || 'no failed requests',
-    )
+      // The route renders after hydration, a tick behind the load event.
+      const value = await until(
+        () => cdp.evaluate<number>(page.probe),
+        (v) => page.ok(v),
+        { attempts: 40, intervalMs: 100 },
+      )
+      check(`offline: ${page.label} boots from cache`, page.ok(value), page.detail(value))
 
-    cdp.clearEvents()
-    await cdp.navigate(server.origin + basePath + DEEP_LINK)
-    // The route renders after hydration, a tick behind the load event.
-    const deepLink = await until(
-      () =>
-        cdp.evaluate<{ path: string; text: string }>(
-          '({ path: location.pathname, text: document.body.innerText.trim() })',
-        ),
-      (state) => state.text.length > 0,
-      { attempts: 40, intervalMs: 100 },
-    )
-    check(
-      'offline: deep link boots from cache',
-      deepLink.path === basePath + DEEP_LINK && deepLink.text.length > 0,
-      `path=${deepLink.path}, rendered ${deepLink.text.length} chars`,
-    )
+      const landedOn = await cdp.evaluate<string>('location.pathname')
+      check(
+        `offline: ${page.label} keeps its URL`,
+        landedOn === basePath + page.path,
+        `expected ${basePath + page.path}, got ${landedOn}`,
+      )
 
-    const deepLinkFailures = cdp.failedRequests()
-    check(
-      'offline: nothing fails to load on the deep link',
-      deepLinkFailures.length === 0,
-      deepLinkFailures.join('; ') || 'no failed requests',
-    )
+      const failures = cdp.failedRequests()
+      check(
+        `offline: nothing fails to load on the ${page.label}`,
+        failures.length === 0,
+        failures.join('; ') || 'no failed requests',
+      )
+    }
 
     console.log(`\nservice worker cached ${cachedPaths.length} files:`)
     for (const path of cachedPaths) console.log(`  ${path}`)

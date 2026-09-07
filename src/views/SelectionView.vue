@@ -18,8 +18,17 @@ const MODE_BLURB: Record<Mode, string> = {
 
 <template>
   <main class="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-    <header class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold tracking-tight">OLL Trainer</h1>
+    <header class="flex items-end justify-between gap-4">
+      <div>
+        <RouterLink
+          :to="{ name: 'landing' }"
+          class="text-xs font-semibold tracking-[0.2em] text-muted uppercase hover:text-fg"
+          data-testid="home-link"
+        >
+          Sunetzu
+        </RouterLink>
+        <h1 class="text-2xl font-semibold tracking-tight">OLL Trainer</h1>
+      </div>
       <ThemeToggle />
     </header>
 

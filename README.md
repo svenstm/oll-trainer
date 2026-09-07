@@ -1,9 +1,14 @@
-# OLL Trainer
+# Sunetzu — OLL Trainer
 
-**<https://sunetzu.com>**
+**<https://sunetzu.com>** · the trainer itself lives at
+**<https://sunetzu.com/oll-trainer>**
 
 Practice all 57 OLL cases, with an adaptive `learn` mode that schedules the
 cases you are slowest and least sure on. Installable, and works offline.
+
+The name is a pun — [Sune](https://www.speedsolving.com/wiki/index.php/Sune),
+the best-known OLL case, and Sun Tzu — so the landing page is written in the
+register that invites.
 
 Three modes:
 
@@ -54,8 +59,12 @@ and so runs by hand rather than in CI.
 - `src/core/` — pure TypeScript: cube model, patterns, scrambles, timer
   reducer, ARTS. No Vue, no DOM, no globals. Tested in the `node` environment.
 - `src/stores/` — Pinia stores, `localStorage`-backed.
-- `src/components/`, `src/views/` — the UI. Component tests are `*.dom.test.ts`
-  and run under happy-dom.
+- `src/components/`, `src/views/` — the UI. `LandingView` is the public page at
+  `/`; `SelectionView` (`/oll-trainer`) and `PracticeView`
+  (`/oll-trainer/practice/:mode`) are the app. Component tests are
+  `*.dom.test.ts` and run under happy-dom.
+- `src/router/` — exports its `routes` table so the view tests drive the real
+  one instead of restating it.
 - `scripts/` — dev-only data generation and the offline check, run by hand;
   generated output is committed.
 
