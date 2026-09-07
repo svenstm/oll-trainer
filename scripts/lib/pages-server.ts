@@ -2,11 +2,14 @@
  * A static file server that behaves like GitHub Pages, for verifying the built
  * app the way it is actually served.
  *
- * The two behaviours that matter, and that `vite preview` does not reproduce:
+ * The three behaviours that matter, and that `vite preview` does not reproduce:
  *
  * - Files live under a base path, not at the root.
  * - There is no SPA rewrite. An unmatched path gets `404.html` with a real 404
  *   status, which is the whole reason `vite.config.ts` writes that file.
+ * - A directory redirects to add its trailing slash, then serves its
+ *   `index.html` with a 200. That is what makes `/oll-trainer` a real page
+ *   rather than the 404 fallback.
  */
 
 import { createServer, type Server } from 'node:http'
@@ -41,6 +44,14 @@ export interface PagesServerOptions {
   basePath: string
 }
 
+async function isFile(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isFile()
+  } catch {
+    return false
+  }
+}
+
 export async function startPagesServer({
   root,
   basePath,
@@ -65,8 +76,20 @@ export async function startPagesServer({
       // `normalize` collapses any `..` before it can escape the served root.
       const file = join(root, normalize('/' + relative))
 
+      // Pages serves a directory's index.html, but first redirects to add the
+      // trailing slash. Reproducing that is what makes `/oll-trainer` behave
+      // here the way it behaves deployed — a 301 then a 200, not a 404.
+      if (!path.endsWith('/')) {
+        const asDirIndex = join(file, 'index.html')
+        if (await isFile(asDirIndex)) {
+          requests.push(`301 ${path}`)
+          res.writeHead(301, { location: `${path}/` }).end()
+          return
+        }
+      }
+
       try {
-        if (!(await stat(file)).isFile()) throw new Error('not a file')
+        if (!(await isFile(file))) throw new Error('not a file')
         const body = await readFile(file)
         requests.push(`200 ${path}`)
         res

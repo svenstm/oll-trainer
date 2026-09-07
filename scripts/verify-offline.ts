@@ -524,11 +524,16 @@ async function main(): Promise<void> {
       )
       check(`offline: ${page.label} boots from cache`, page.ok(value), page.detail(value))
 
+      // Pages redirects a directory to add its trailing slash, so
+      // /oll-trainer legitimately lands on /oll-trainer/. Both are the same
+      // route; what matters is that the URL was not rewritten to something else.
+      const trimSlash = (p: string) => (p.length > 1 ? p.replace(/\/$/, '') : p)
       const landedOn = await cdp.evaluate<string>('location.pathname')
+      const wanted = basePath + page.path
       check(
         `offline: ${page.label} keeps its URL`,
-        landedOn === basePath + page.path,
-        `expected ${basePath + page.path}, got ${landedOn}`,
+        trimSlash(landedOn) === trimSlash(wanted),
+        `expected ${wanted}, got ${landedOn}`,
       )
 
       const failures = cdp.failedRequests()

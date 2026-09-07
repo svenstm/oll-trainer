@@ -13,7 +13,7 @@ import { applyMoves, SOLVED } from '@/core/cube'
 import { CASES_BY_ID } from '@/core/data/cases'
 import { GROUPED_CASES } from '@/core/groups'
 import { canonicalPattern, patternFromCube, patternKey } from '@/core/pattern'
-import { routes } from '@/router'
+import { routes } from '@/router/routes'
 import { resetStorageCache } from '@/stores/persist'
 import { useSelectionStore } from '@/stores/selection'
 import { useSettingsStore } from '@/stores/settings'
@@ -154,6 +154,19 @@ describe('where the pages live', () => {
     await router.push('/oll-trainer')
     expect(router.currentRoute.value.name).toBe('selection')
   })
+
+  /**
+   * The build emits `dist/oll-trainer/index.html` so Pages serves the trainer
+   * with a real 200, and Pages redirects a directory to add its trailing
+   * slash. That only works if these paths resolve too.
+   */
+  it.each(['/oll-trainer/', '/oll-trainer/practice/train/'])(
+    'tolerates the trailing slash Pages adds: %s',
+    async (path) => {
+      await router.push(path)
+      expect(router.currentRoute.value.name).not.toBe('landing')
+    },
+  )
 
   it('sends an unknown path to the landing page', async () => {
     await router.push('/no-such-page')

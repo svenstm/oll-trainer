@@ -195,6 +195,34 @@ describe('solves', () => {
     expect(new Set(ids).size).toBe(5)
   })
 
+  /**
+   * Two solves can land in the same millisecond. Inserting on a lower bound
+   * filed the newer one ahead of the older, which reversed recording order —
+   * so `lastSolve` pointed at the wrong solve and the Delete hotkey deleted
+   * the wrong one.
+   */
+  it('keeps recording order when solves share a millisecond', () => {
+    const store = useSolvesStore()
+    const first = store.record(solve(27, T0))
+    const second = store.record(solve(21, T0))
+    const third = store.record(solve(33, T0))
+
+    expect(store.solves.map((s) => s.id)).toEqual([first.id, second.id, third.id])
+    expect(store.lastSolve!.id).toBe(third.id)
+  })
+
+  it('restores an undone delete to its original position', () => {
+    const store = useSolvesStore()
+    const first = store.record(solve(27, T0))
+    const second = store.record(solve(21, T0))
+
+    const removed = store.removeLast()!
+    expect(removed.id).toBe(second.id)
+
+    store.insert(removed)
+    expect(store.solves.map((s) => s.id)).toEqual([first.id, second.id])
+  })
+
   it('keeps the session as a view of the durable history', () => {
     const store = useSolvesStore()
     store.record(solve(27, T0))

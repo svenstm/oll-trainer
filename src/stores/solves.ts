@@ -12,12 +12,34 @@ function parseSession(raw: unknown): { startedAt: number } | null {
 }
 
 /** Index of the first solve at or after `ts`, by binary search. */
+/** First index whose ts is >= `ts`. Used for the inclusive session window. */
 function lowerBound(solves: readonly Solve[], ts: number): number {
   let lo = 0
   let hi = solves.length
   while (lo < hi) {
     const mid = (lo + hi) >> 1
     if (solves[mid]!.ts < ts) lo = mid + 1
+    else hi = mid
+  }
+  return lo
+}
+
+/**
+ * First index whose ts is strictly greater than `ts` — i.e. the position
+ * *after* any solve already recorded in the same millisecond.
+ *
+ * Insertion must use this rather than `lowerBound`. Two solves can share a
+ * timestamp, and a lower bound would file the newer one ahead of the older,
+ * which reverses recording order. That matters twice over: `lastSolve` (and so
+ * the Delete hotkey's `removeLast`) would target the wrong solve, and undoing
+ * a delete would not put the solve back where it came from.
+ */
+function upperBound(solves: readonly Solve[], ts: number): number {
+  let lo = 0
+  let hi = solves.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (solves[mid]!.ts <= ts) lo = mid + 1
     else hi = mid
   }
   return lo
@@ -64,7 +86,7 @@ export const useSolvesStore = defineStore('solves', () => {
    */
   function insert(solve: Solve): void {
     const next = [...solves.value]
-    const at = lowerBound(next, solve.ts)
+    const at = upperBound(next, solve.ts)
     next.splice(at, 0, solve)
     solves.value = next
   }

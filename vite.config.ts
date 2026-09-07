@@ -1,5 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
-import { copyFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -19,19 +20,34 @@ const BASE_PATH = '/'
 const TRAINER_PATH = '/oll-trainer'
 
 /**
- * GitHub Pages has no SPA rewrite, so a hard refresh of /practice/learn 404s.
- * Pages serves 404.html for any unmatched path; making it a copy of index.html
- * boots the SPA, and the router resolves the original URL client-side.
+ * GitHub Pages has no SPA rewrite, so a hard refresh of any route below '/'
+ * would 404. Two things stand in for a rewrite:
+ *
+ * - `404.html`, a copy of `index.html`. Pages serves it for any unmatched
+ *   path, so the SPA boots and the router resolves the original URL. The app
+ *   works, but the response carries a 404 status.
+ * - `oll-trainer/index.html`, also a copy. Pages serves a directory's
+ *   `index.html` with a real **200**, so the trainer's own entry point — which
+ *   is the PWA `start_url`, and the URL people will bookmark and share — is a
+ *   proper page rather than a dressed-up error.
+ *
+ * Deep links under it (`/oll-trainer/practice/train`) still fall to `404.html`.
+ * They work, and nobody bookmarks a scramble. A host with real rewrites would
+ * make both cases 200 and let all of this go.
  */
-function spaFallback404(): Plugin {
+function spaFallbacks(): Plugin {
+  const dist = (path: string) => fileURLToPath(new URL(`./dist/${path}`, import.meta.url))
+
   return {
-    name: 'oll-trainer:spa-fallback-404',
+    name: 'oll-trainer:spa-fallbacks',
     apply: 'build',
     closeBundle() {
-      copyFileSync(
-        fileURLToPath(new URL('./dist/index.html', import.meta.url)),
-        fileURLToPath(new URL('./dist/404.html', import.meta.url)),
-      )
+      const index = dist('index.html')
+      copyFileSync(index, dist('404.html'))
+
+      const trainerDir = dist(TRAINER_PATH.replace(/^\//, ''))
+      mkdirSync(trainerDir, { recursive: true })
+      copyFileSync(index, join(trainerDir, 'index.html'))
     },
   }
 }
@@ -78,7 +94,7 @@ export default defineConfig({
       },
       devOptions: { enabled: false },
     }),
-    spaFallback404(),
+    spaFallbacks(),
   ],
   resolve: {
     alias: {
