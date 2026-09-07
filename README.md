@@ -1,6 +1,6 @@
 # OLL Trainer
 
-**<https://svenstm.github.io/oll-trainer/>**
+**<https://sunetzu.com>**
 
 Practice all 57 OLL cases, with an adaptive `learn` mode that schedules the
 cases you are slowest and least sure on. Installable, and works offline.

@@ -7,8 +7,13 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-/** Repo name — the app is served from https://<user>.github.io/<BASE_PATH>/ */
-const BASE_PATH = '/oll-trainer/'
+/**
+ * Where the app is mounted. The custom domain (sunetzu.com) serves Pages from
+ * the domain root, so this is '/' — it was '/oll-trainer/' while the app lived
+ * at <user>.github.io/<repo>/. Everything below derives from it, so moving the
+ * app back under a path is a one-line change.
+ */
+const BASE_PATH = '/'
 
 /**
  * GitHub Pages has no SPA rewrite, so a hard refresh of /practice/learn 404s.
