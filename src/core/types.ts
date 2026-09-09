@@ -1,7 +1,7 @@
 /** Practice modes. `learn` is the ARTS-scheduled one. */
 export type Mode = 'train' | 'recap' | 'learn'
 
-export const MODES = ['train', 'recap', 'learn'] as const satisfies readonly Mode[]
+export const MODES = ['learn', 'train', 'recap'] as const satisfies readonly Mode[]
 
 export function isMode(value: unknown): value is Mode {
   return typeof value === 'string' && (MODES as readonly string[]).includes(value)
