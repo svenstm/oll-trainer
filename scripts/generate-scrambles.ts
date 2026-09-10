@@ -21,7 +21,6 @@ import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search'
 import { applyMoves, invertMoves, parseMoves, SOLVED, type Cube } from '../src/core/cube'
 import {
   SLOT_FACELETS,
-  canonicalPattern,
   patternFromCube,
   patternKey,
   isWellFormedPattern,
@@ -88,9 +87,10 @@ async function main() {
 
   const started = Date.now()
   for (const ollCase of cases) {
+    // The exact orientation the case is stored in, which is the one its
+    // algorithm solves — so a scramble has to reproduce it turn for turn, not
+    // merely up to a rotation.
     const expected = patternKey(ollCase.pattern)
-    // The pattern the algorithm's inverse produces, before canonicalising.
-    const exact = patternKey(patternFromCube(applyMoves(SOLVED, invertMoves(ollCase.alg))))
     const scrambles = new Map<string, number>()
 
     for (let i = 0; i < CANDIDATES_PER_CASE; i++) {
@@ -104,7 +104,7 @@ async function main() {
       const seedAlg = `${word} ${invertMoves(ollCase.alg)}`
 
       const seeded = applyMoves(SOLVED, seedAlg)
-      if (!firstTwoLayersSolved(seeded) || patternKey(patternFromCube(seeded)) !== exact) {
+      if (!firstTwoLayersSolved(seeded) || patternKey(patternFromCube(seeded)) !== expected) {
         throw new Error(`OLL ${ollCase.id}: seed left the case (${seedAlg})`)
       }
 
@@ -119,7 +119,7 @@ async function main() {
       if (
         !firstTwoLayersSolved(scrambled) ||
         !isWellFormedPattern(pattern) ||
-        patternKey(canonicalPattern(pattern)) !== expected
+        patternKey(pattern) !== expected
       ) {
         throw new Error(
           `OLL ${ollCase.id}: generated scramble does not reproduce the case: ${scramble}`,

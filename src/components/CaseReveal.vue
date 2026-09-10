@@ -1,19 +1,30 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import OllFace from './OllFace.vue'
+import { solutionAsDrawn } from '@/core/scramble'
 import { formatMs } from '@/core/time'
 import type { OllCase, Pattern } from '@/core/types'
 
-defineProps<{
+const props = defineProps<{
   ollCase: OllCase
   /** null for an "I don't know": there is no time, because nothing was timed. */
   ms: number | null
   /**
-   * The orientation actually just solved. Cases are stored in a canonical
-   * rotation, but a scramble shows one at any of four angles, and drawing the
-   * canonical picture instead would show a case the solver did not face.
+   * The orientation actually just solved — a scramble serves a case at any of
+   * four angles, and drawing the stored picture instead would show a case the
+   * solver did not face.
    */
   pattern: Pattern
 }>()
+
+/**
+ * The algorithm, and the rotation that has to come first for it to apply at
+ * the angle drawn beside it. Without that rotation the two halves of this
+ * panel disagree, and in study mode the user runs the algorithm against a cube
+ * it does not solve.
+ */
+const solution = computed(() => solutionAsDrawn(props.ollCase, props.pattern))
 </script>
 
 <template>
@@ -37,7 +48,15 @@ defineProps<{
       </p>
       <p class="text-sm text-muted">{{ ollCase.group }}</p>
 
-      <p class="mt-2 font-mono text-sm">{{ ollCase.alg }}</p>
+      <p class="mt-2 font-mono text-sm" data-testid="solution">
+        <!-- The space is inside the expression: the compiler trims a trailing
+             one out of the template, and the line has to stay a sequence of
+             moves that can be read straight off the screen. -->
+        <span v-if="solution.hold" class="text-muted" data-testid="hold">{{
+          solution.hold + ' '
+        }}</span
+        >{{ solution.alg }}
+      </p>
     </div>
   </section>
 </template>

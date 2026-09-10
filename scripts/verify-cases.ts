@@ -179,12 +179,19 @@ export function bindCases(entries: readonly AlgorithmEntry[] = OLL_ALGORITHMS): 
       )
     }
 
-    bound.push({ ...entry, pattern: canonicalPattern(pattern) })
+    // Stored as derived, *not* canonicalised: the canonical rotation is an
+    // arbitrary artefact of sorting keys, and for 42 of the 57 cases it is not
+    // the angle the algorithm is written for — so drawing it would show a
+    // picture the algorithm beside it does not solve.
+    bound.push({ ...entry, pattern })
   }
 
+  // Two cases are the same class when their patterns agree up to a rotation,
+  // so the collision and enumeration checks compare canonical forms even
+  // though what is stored is the derived orientation.
   const byKey = new Map<string, BoundCase[]>()
   for (const c of bound) {
-    const key = patternKey(c.pattern)
+    const key = patternKey(canonicalPattern(c.pattern))
     byKey.set(key, [...(byKey.get(key) ?? []), c])
   }
   for (const [key, collisions] of byKey) {

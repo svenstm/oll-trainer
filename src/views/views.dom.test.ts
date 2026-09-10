@@ -12,7 +12,7 @@ import ResultsPanel from '@/components/ResultsPanel.vue'
 import { applyMoves, SOLVED } from '@/core/cube'
 import { CASES_BY_ID } from '@/core/data/cases'
 import { GROUPED_CASES } from '@/core/groups'
-import { canonicalPattern, patternFromCube, patternKey } from '@/core/pattern'
+import { canonicalPattern, patternFromCube, patternKey, SOLVED_PATTERN } from '@/core/pattern'
 import { routes } from '@/router/routes'
 import { resetStorageCache } from '@/stores/persist'
 import { useSelectionStore } from '@/stores/selection'
@@ -566,7 +566,24 @@ describe('the case reveal', () => {
       expect(oriented, `slot ${slot}`).toBe(served[slot as number] === 1 ? 'true' : 'false')
     }
     // And it really is the same case, just turned.
-    expect(patternKey(canonicalPattern(served))).toBe(patternKey(CASES_BY_ID.get(27)!.pattern))
+    expect(patternKey(canonicalPattern(served))).toBe(
+      patternKey(canonicalPattern(CASES_BY_ID.get(27)!.pattern)),
+    )
+  })
+
+  it('shows a solution that solves the cube that was served', async () => {
+    const wrapper = await mountPractice('train')
+    // Several solves, because the angle is picked at random and the algorithm
+    // as written only solves one of the four.
+    for (let i = 0; i < 8; i++) {
+      const scramble = wrapper.get('[data-testid="scramble"]').text()
+      await doSolve()
+      const solution = wrapper.get('[data-testid="solution"]').text()
+      const solved = applyMoves(applyMoves(SOLVED, scramble), solution)
+      expect(patternKey(patternFromCube(solved)), `${scramble} then ${solution}`).toBe(
+        patternKey(SOLVED_PATTERN),
+      )
+    }
   })
 })
 
@@ -580,7 +597,7 @@ describe("I don't know", () => {
   function caseIdOf(scramble: string): number {
     const wanted = patternKey(canonicalPattern(patternFromCube(applyMoves(SOLVED, scramble))))
     for (const ollCase of CASES_BY_ID.values()) {
-      if (patternKey(ollCase.pattern) === wanted) return ollCase.id
+      if (patternKey(canonicalPattern(ollCase.pattern)) === wanted) return ollCase.id
     }
     throw new Error(`no case sets up ${scramble}`)
   }

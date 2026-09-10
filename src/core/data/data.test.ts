@@ -61,16 +61,15 @@ describe('cases', () => {
     expect(CASES.every((c) => c.name.trim().length > 0)).toBe(true)
   })
 
-  it('has well-formed, canonical, distinct patterns', () => {
+  it('has well-formed, distinct patterns', () => {
     expect(CASES.every((c) => isWellFormedPattern(c.pattern))).toBe(true)
-    expect(
-      CASES.every((c) => patternKey(canonicalPattern(c.pattern)) === patternKey(c.pattern)),
-    ).toBe(true)
     expect(new Set(CASES.map((c) => patternKey(c.pattern))).size).toBe(57)
   })
 
   it('has patterns that are exactly the enumerated classes', () => {
-    expect(CASES.map((c) => patternKey(c.pattern)).sort()).toEqual(
+    // Up to a rotation: patterns are stored in the orientation their algorithm
+    // solves, and the enumeration returns one canonical representative each.
+    expect(CASES.map((c) => patternKey(canonicalPattern(c.pattern))).sort()).toEqual(
       enumerateOllPatterns().map(patternKey).sort(),
     )
   })
@@ -100,7 +99,11 @@ describe('cases', () => {
       // The algorithm solves the case, so its inverse creates the case exactly.
       const cube = applyMoves(SOLVED, invertMoves(c.alg))
       expect(firstTwoLayersSolved(cube), `OLL ${id} disturbs the first two layers`).toBe(true)
-      expect(patternKey(canonicalPattern(patternFromCube(cube)))).toBe(patternKey(c.pattern))
+      // Exactly, not up to a rotation: the stored pattern is what gets drawn
+      // next to this algorithm, so a rotation between them is a wrong picture.
+      expect(patternKey(patternFromCube(cube)), `OLL ${id} is drawn at the wrong angle`).toBe(
+        patternKey(c.pattern),
+      )
     },
   )
 
@@ -142,7 +145,7 @@ describe('scrambles', () => {
         expect(firstTwoLayersSolved(cube), scramble).toBe(true)
         const pattern = patternFromCube(cube)
         expect(isWellFormedPattern(pattern), scramble).toBe(true)
-        expect(patternKey(canonicalPattern(pattern)), scramble).toBe(patternKey(c.pattern))
+        expect(patternKey(pattern), scramble).toBe(patternKey(c.pattern))
       }
     },
   )

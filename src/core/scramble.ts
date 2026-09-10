@@ -20,7 +20,8 @@ import {
 } from './cube'
 import { CASES_BY_ID } from './data/cases'
 import { SCRAMBLES } from './data/scrambles'
-import type { Rotation } from './types'
+import { rotationBetween } from './pattern'
+import type { OllCase, Pattern, Rotation } from './types'
 
 export const ROTATIONS: readonly Rotation[] = ['', 'y', 'y2', "y'"]
 
@@ -112,4 +113,34 @@ export function pickScramble(
   const base = options[Math.floor(random() * options.length)]!
   const angle = rotation ?? ROTATIONS[Math.floor(random() * ROTATIONS.length)]!
   return { caseId, scramble: applyRotation(base, angle), rotation: angle }
+}
+
+/** The rotation that undoes each quarter turn, indexed by quarter turns. */
+const UNTURN: readonly Rotation[] = ['', "y'", 'y2', 'y']
+
+export interface DrawnSolution {
+  /** The rotation to hold the cube by first, or '' when it is already square. */
+  hold: Rotation
+  /** The case's canonical algorithm, unchanged. */
+  alg: string
+}
+
+/**
+ * The solution for a case *as drawn*.
+ *
+ * A case is stored in the one orientation its algorithm is written for, but it
+ * is served at any of four angles — so on three of them the bare algorithm
+ * does not solve the cube in the user's hands. Rather than rewrite the
+ * algorithm into an unrecognisable conjugate, this returns the cube rotation
+ * that squares the angle on screen up with the algorithm; `hold` then `alg` is
+ * a sequence that really does orient the last layer.
+ */
+export function solutionAsDrawn(ollCase: OllCase, drawn: Pattern): DrawnSolution {
+  // Symmetric cases (H, Pi, the two dot cases that survive a half turn) match
+  // at more than one angle; `rotationBetween` finds the smallest, so those ask
+  // for no rotation at all — correctly, since the algorithm solves them from
+  // either side. A null cannot happen for a case's own pattern, and asking for
+  // no rotation is the safe reading if it ever did.
+  const quarterTurns = rotationBetween(ollCase.pattern, drawn) ?? 0
+  return { hold: UNTURN[quarterTurns]!, alg: ollCase.alg }
 }

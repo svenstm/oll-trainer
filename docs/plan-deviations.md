@@ -125,6 +125,29 @@ an `outcome` was necessarily timed. Writing v2 is what matters: an older build
 reads the version, refuses the file and says so, instead of quietly taking every
 blank in it for an ordinary solve.
 
+## The reveal names the angle it is drawn at (§9)
+
+§9 has `CaseReveal` show "the canonical alg", and it does — but the face beside
+it is the orientation that was actually served, which is one of four angles.
+On three of them the algorithm as written does not solve the cube in the user's
+hands, and study mode exists precisely so that algorithm can be run against
+that cube. So the line is now the cube rotation that squares the served angle
+up with the algorithm, followed by the algorithm itself, unchanged: `y2 R' U' R
+U' R' U2 R F R U R' U' F'`. Rewriting the algorithm into its conjugate would
+have been equally correct and unrecognisable — the whole point is to teach the
+one sequence.
+
+A second, quieter departure fed the same bug. §5 step 2 stores the pattern the
+inverted algorithm produces; `verify-cases.ts` stored
+`canonicalPattern(...)` of it instead — the lexicographically smallest of its
+four rotations, which is what the _enumeration_ returns and has no relation to
+how any algorithm is written. For 42 of the 57 cases that is a different angle,
+so the case list, the results tab and the landing page all drew those cases
+turned away from their own algorithm. Patterns are now stored as derived, and
+the binding test compares them turn for turn rather than up to a rotation;
+canonicalising is left to the two checks that are genuinely about equivalence
+classes (collisions, and the comparison against the enumerated set).
+
 ## ARTS constants
 
 See [`arts-recalibration.md`](arts-recalibration.md). `strengthSpan` changed on
