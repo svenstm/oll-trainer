@@ -1,6 +1,6 @@
 /** Formatting and the averages a cubing timer is expected to show. */
 
-import type { Solve } from './types'
+import { isSolved, type Solve } from './types'
 
 /**
  * `12.34`, or `1:02.34` past a minute. Two decimals because the timer measures
@@ -42,6 +42,8 @@ export function ao(values: readonly number[], n: number): number | null {
 
 export interface Stats {
   count: number
+  /** Attempts that were never timed at all: "I don't know". */
+  blanks: number
   mean: number | null
   best: number | null
   worst: number | null
@@ -51,9 +53,12 @@ export interface Stats {
 
 /** `solves` must be oldest-first, which is how the store keeps them. */
 export function statsFor(solves: readonly Solve[]): Stats {
-  const values = solves.map((solve) => solve.ms)
+  // A blank has no time, so it can enter none of these. Folding one in as a
+  // zero would make blanking on a case look like getting faster at it.
+  const values = solves.filter(isSolved).map((solve) => solve.ms)
   return {
     count: values.length,
+    blanks: solves.length - values.length,
     mean: mean(values),
     best: best(values),
     worst: worst(values),

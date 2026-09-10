@@ -21,6 +21,13 @@ import { elapsedMs, IDLE, reduce, type TimerEvent, type TimerState } from '@/cor
 
 export interface UseTimerOptions {
   holdMs: Ref<number> | number
+  /**
+   * False switches the timer off without unmounting it: space, taps and the
+   * hold stop driving it, and space becomes the view's to spend on something
+   * else. Study mode needs this — a rep taken with the solution on screen must
+   * not be recordable, and a timer you can still start is a timer that will be.
+   */
+  enabled?: Ref<boolean> | boolean
   /** Called once per solve, on the transition into `stopped`. */
   onSolve: (ms: number) => void
   /** Keys pressed while the timer is not running, for the view's own shortcuts. */
@@ -49,6 +56,7 @@ export function useTimer(options: UseTimerOptions) {
 
   const now = () => performance.now()
   const config = () => ({ holdMs: unref(options.holdMs) })
+  const isEnabled = () => unref(options.enabled ?? true)
 
   /**
    * The display does not simply track the reducer: going idle after a solve
@@ -114,7 +122,9 @@ export function useTimer(options: UseTimerOptions) {
     if (event.key === ' ') {
       // Otherwise space scrolls the page out from under the timer.
       event.preventDefault()
-      dispatch('down')
+      // With the timer off, space is the view's to use.
+      if (isEnabled()) dispatch('down')
+      else options.onShortcut?.(event)
       return
     }
     options.onShortcut?.(event)
@@ -128,10 +138,11 @@ export function useTimer(options: UseTimerOptions) {
       return
     }
     if (isInteractiveTarget(event.target)) return
-    if (event.key === ' ') dispatch('up')
+    if (event.key === ' ' && isEnabled()) dispatch('up')
   }
 
   function onTouchStart(event: TouchEvent): void {
+    if (!isEnabled()) return
     if (isInteractiveTarget(event.target)) return
     // Stops the tap becoming a synthesised click on whatever is underneath.
     if (event.cancelable) event.preventDefault()
@@ -139,6 +150,7 @@ export function useTimer(options: UseTimerOptions) {
   }
 
   function onTouchEnd(event: TouchEvent): void {
+    if (!isEnabled()) return
     if (state.value.phase !== 'stopped' && isInteractiveTarget(event.target)) return
     if (event.cancelable) event.preventDefault()
     dispatch('up')

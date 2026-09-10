@@ -1,7 +1,7 @@
 # Where the build differs from the plan
 
-[`PLAN.md`](PLAN.md) is kept as written. This records the three places the
-finished app deliberately departs from it, and why.
+[`PLAN.md`](PLAN.md) is kept as written. This records the places the finished
+app deliberately departs from it, and why.
 
 ## Export/import was added (§12 excluded it)
 
@@ -58,6 +58,72 @@ fallback is exercised as deployed.
 
 It stays out of CI, which is why it is a script and not a test: it needs a
 real browser and a real service worker.
+
+## Solve time is no longer the only signal ("I don't know")
+
+`arts.ts` opened by stating that solve time is the only signal and that there
+is no self-rating. There now is one, of exactly one bit: an **I don't know**
+button, pressed before the timer is ever started, on a case the user has looked
+at and blanked on.
+
+The reason for taking the rating is that the timer cannot express this. Blanking
+has three possible shapes without it, and all three are lies: you eventually
+work the case out and record a 40-second solve, so the case reads as _known but
+slow_; you press Escape, and the scheduler learns nothing at all about the one
+case it most needed to hear about; or you walk away, and the time lands outside
+the `[minMs, maxMs]` band and is discarded. The most informative event in a
+session was the only one with nowhere to go.
+
+What it does to the model:
+
+- **Alpha jumps** to `alphaBlank` (0.52, most of the way to `alphaMax`) rather
+  than taking an `lr`-sized step, and never moves down. The bounded log-ratio
+  step is sized for timing jitter; this is not a noisy measurement.
+- **An encounter is pushed with `d = dMax`.** It has to be an encounter, or the
+  case would keep reading as never introduced when in fact it has been met and
+  failed. But an encounter _raises_ activation, and a case you just blanked on
+  must not read as strong — so `dMax` collapses its contribution within a second
+  or two of virtual time, and the case sinks to the bottom of the lowest-
+  activation ordering `pickNext` serves from. It comes back on its own, once the
+  spacing hold-off has let a few other cases through.
+- **It stays out of every timing statistic**: not in `byCase`, so not in the
+  execution floors, the Theil-Sen `tps` fit, or `counts`; and not in `statsFor`,
+  so not in the mean, best, worst, ao5, ao12 or the sparkline. A blank folded in
+  as a zero would make failing at a case look like getting faster at it.
+
+`Solve` became a discriminated union on `outcome`, and the `unknown` variant has
+no `ms` field at all rather than a zero or a null. That is the whole point: the
+compiler walks you to every site that reads a time and makes each one decide. A
+sentinel would have left all of them compiling.
+
+One display-only special case exists, `blankedLast`. `pickNext` needs no such
+thing — by the time it runs, real time has passed and the `dMax` encounter has
+already decayed. But the model is a computed over the solve history, so it stays
+frozen at the instant the blank was recorded, where `dt` is still at its
+one-second floor and activation has not begun to fall. Without the guard, the
+case you just failed would sit in the Cases tab reading almost fully strong, at
+exactly the moment you are most likely to look at it.
+
+### Study mode
+
+Pressing it does _not_ draw the next case. The setup stays on screen, because it
+is also the setup on the physical cube in front of the user, and scrambles here
+are applied from solved — so `apply setup → run the algorithm → cube is solved
+again → repeat` works indefinitely off the same line. The timer is switched off
+entirely for the duration (`useTimer`'s new `enabled`), and removed from the
+screen rather than zeroed.
+
+Reps taken here are deliberately **not recordable**. A rep executed while
+reading the algorithm off the screen is neither an honest time nor an honest
+recall, but it would still mint an encounter — so three reps of "practice" would
+leave the case reading strong. Instead **Try it timed** leaves study and serves
+the same case with a fresh scramble, a fresh angle and the solution hidden: one
+real measurement, taken where it is most informative.
+
+Backups went to version 2. A v1 file is read losslessly, since a solve without
+an `outcome` was necessarily timed. Writing v2 is what matters: an older build
+reads the version, refuses the file and says so, instead of quietly taking every
+blank in it for an ordinary solve.
 
 ## ARTS constants
 

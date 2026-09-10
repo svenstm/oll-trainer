@@ -25,7 +25,28 @@ const DAY = 24 * HOUR
 const T0 = Date.UTC(2026, 0, 1, 12, 0, 0)
 
 function solve(caseId: number, ms: number, ts: number, rotation: Rotation = ''): Solve {
-  return { id: `${caseId}@${ts}`, caseId, ms, scramble: '', rotation, ts, mode: 'learn' }
+  return {
+    id: `${caseId}@${ts}`,
+    caseId,
+    ms,
+    scramble: '',
+    rotation,
+    ts,
+    mode: 'learn',
+    outcome: 'solved',
+  }
+}
+
+function blank(caseId: number, ts: number, rotation: Rotation = ''): Solve {
+  return {
+    id: `${caseId}!${ts}`,
+    caseId,
+    scramble: '',
+    rotation,
+    ts,
+    mode: 'learn',
+    outcome: 'unknown',
+  }
 }
 
 /** A history of `count` solves of `caseId`, `gap` apart, ending `before` now. */
@@ -89,7 +110,7 @@ describe('compressGap', () => {
 })
 
 describe('activation', () => {
-  const enc = (vt: number, d = 0.3) => ({ vt, d })
+  const enc = (vt: number, d = 0.3) => ({ vt, d, blank: false })
 
   it('is -Infinity for a case never seen', () => {
     expect(activation(undefined, 1000)).toBe(-Infinity)
@@ -322,6 +343,108 @@ describe('display', () => {
     ]
     const status = learnStatus(buildModel(history, T0 + 10 * 20 * SECOND), [27, 21, 33])
     expect(status).toEqual({ introduced: 2, total: 3, atRisk: 1 })
+  })
+})
+
+describe('blanks', () => {
+  it('reaches the model even though it has no time to fall inside the band', () => {
+    const model = buildModel([blank(27, T0)], T0 + SECOND)
+    expect(model.encounters.get(27)).toHaveLength(1)
+    expect(model.served).toEqual([27])
+  })
+
+  it('jumps alpha rather than stepping it', () => {
+    const stepped = buildModel(repeated(27, 3, 3000, MINUTE), T0 + 3 * MINUTE)
+    const blanked = buildModel(
+      [...repeated(27, 3, 3000, MINUTE), blank(27, T0 + 3 * MINUTE)],
+      T0 + 3 * MINUTE + SECOND,
+    )
+    // No plausible run of lr-sized steps covers this ground; the jump is the point.
+    expect(blanked.alpha.get(27)!).toBeGreaterThan(stepped.alpha.get(27)! + 5 * ARTS_DEFAULTS.lr)
+    expect(blanked.alpha.get(27)!).toBe(ARTS_DEFAULTS.alphaBlank)
+  })
+
+  it('never pulls alpha back down on a case already harder than that', () => {
+    // Consistently far slower than predicted, so alpha climbs to its ceiling.
+    const slow = repeated(27, 40, 20_000, 2 * MINUTE)
+    const before = buildModel(slow, T0 + 80 * MINUTE).alpha.get(27)!
+    expect(before).toBeGreaterThan(ARTS_DEFAULTS.alphaBlank)
+    const after = buildModel([...slow, blank(27, T0 + 80 * MINUTE)], T0 + 80 * MINUTE + SECOND)
+    expect(after.alpha.get(27)).toBe(before)
+  })
+
+  it('leaves the timing statistics alone: no floor, no count, no tps skew', () => {
+    const timed = buildModel(repeated(27, 5, 3000, MINUTE), T0 + 5 * MINUTE)
+    const withBlank = buildModel(
+      [...repeated(27, 5, 3000, MINUTE), blank(27, T0 + 5 * MINUTE)],
+      T0 + 5 * MINUTE + SECOND,
+    )
+    expect(withBlank.counts.get(27)).toBe(5)
+    expect(withBlank.floors.get(27)).toBe(timed.floors.get(27))
+    expect(withBlank.tps).toBe(timed.tps)
+  })
+
+  it('gives a case seen only through blanks no floor and no count at all', () => {
+    const model = buildModel([blank(27, T0)], T0 + SECOND)
+    expect(model.counts.has(27)).toBe(false)
+    expect(model.floors.has(27)).toBe(false)
+  })
+
+  it('counts the case as introduced — it has been met, and failed', () => {
+    const model = buildModel([blank(27, T0)], T0 + SECOND)
+    expect(learnStatus(model, [27, 21]).introduced).toBe(1)
+  })
+
+  it('decays away instead of leaving the case looking strong', () => {
+    const solved = buildModel([solve(27, 3000, T0)], T0 + MINUTE)
+    const blanked = buildModel([blank(27, T0)], T0 + MINUTE)
+    expect(activation(blanked.encounters.get(27), blanked.vtNow)).toBeLessThan(
+      activation(solved.encounters.get(27), solved.vtNow),
+    )
+    expect(strength(blanked, 27)).toBe(0)
+    expect(isAtRisk(blanked, 27)).toBe(true)
+  })
+
+  it('reads as at risk even in a model frozen at the instant it was recorded', () => {
+    // The one case the raw activation gets wrong: dt is still at its one-second
+    // floor, so the dMax encounter has not begun to fall.
+    const model = buildModel([blank(27, T0)], T0)
+    expect(activation(model.encounters.get(27), model.vtNow)).toBeGreaterThan(ARTS_DEFAULTS.tau)
+    expect(strength(model, 27)).toBe(0)
+    expect(isAtRisk(model, 27)).toBe(true)
+    expect(learnStatus(model, [27]).atRisk).toBe(1)
+  })
+
+  it('stops reading as at risk once the case is solved again', () => {
+    const model = buildModel([blank(27, T0), solve(27, 2000, T0 + MINUTE)], T0 + MINUTE + SECOND)
+    expect(isAtRisk(model, 27)).toBe(false)
+    expect(strength(model, 27)).toBeGreaterThan(0)
+  })
+
+  it('sinks the blanked case to the bottom of the ordering pickNext serves from', () => {
+    // Everything introduced, so pickNext is choosing on activation alone.
+    const selection = [1, 2, 3, 4, 5, 6, 7, 8, 27]
+    const history = [
+      ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((id) => repeated(id, 4, 2000, MINUTE, T0 + id * HOUR)),
+      blank(27, T0 + 9 * HOUR),
+      // Three cases served since, so 27 is out of the spacing hold and eligible.
+      ...[1, 2, 3].map((id, i) => solve(id, 2000, T0 + 10 * HOUR + i * MINUTE)),
+    ]
+    const model = buildModel(history, T0 + 11 * HOUR)
+    expect(recentlyServed(model, selection.length).has(27)).toBe(false)
+    expect(pickNext(model, selection, () => 0)).toBe(27)
+  })
+
+  it('un-learns cleanly when deleted, like any other attempt', () => {
+    const history = repeated(27, 3, 3000, MINUTE)
+    const withBlank = [...history, blank(27, T0 + 3 * MINUTE)]
+    const now = T0 + 4 * MINUTE
+    // It really did teach the model something...
+    expect(buildModel(withBlank, now)).not.toEqual(buildModel(history, now))
+    // ...and no trace of it survives the delete, because there is no state to
+    // survive in: the model is only ever a fold over what is left.
+    const deleted = withBlank.filter((attempt) => attempt.outcome !== 'unknown')
+    expect(buildModel(deleted, now)).toEqual(buildModel(history, now))
   })
 })
 

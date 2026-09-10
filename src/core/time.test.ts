@@ -83,11 +83,13 @@ describe('statsFor', () => {
     rotation: '',
     ts: 1000 + i,
     mode: 'train',
+    outcome: 'solved',
   })
 
   it('is empty for no solves', () => {
     expect(statsFor([])).toEqual({
       count: 0,
+      blanks: 0,
       mean: null,
       best: null,
       worst: null,

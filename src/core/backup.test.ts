@@ -16,7 +16,16 @@ import type { Solve } from './types'
 const T0 = Date.UTC(2026, 0, 1, 12, 0, 0)
 
 function solve(id: string, caseId: number, ts: number): Solve {
-  return { id, caseId, ms: 3000, scramble: 'R U', rotation: '', ts, mode: 'train' }
+  return {
+    id,
+    caseId,
+    ms: 3000,
+    scramble: 'R U',
+    rotation: '',
+    ts,
+    mode: 'train',
+    outcome: 'solved',
+  }
 }
 
 const input = {
@@ -93,6 +102,46 @@ describe('parseBackup', () => {
     )
     expect(backup.solves).toHaveLength(1)
   })
+
+  it('reads a v1 file, where every attempt was timed and none said so', () => {
+    const backup = parseBackup(
+      JSON.stringify({
+        app: BACKUP_APP,
+        version: 1,
+        solves: [{ id: 'a', caseId: 27, ms: 3000, ts: T0, mode: 'train', rotation: '' }],
+      }),
+    )
+    expect(backup.solves[0]).toMatchObject({ outcome: 'solved', ms: 3000 })
+  })
+
+  it('round-trips a blank, which has no time at all', () => {
+    const blank: Solve = {
+      id: 'x',
+      caseId: 27,
+      scramble: 'R U',
+      rotation: 'y',
+      ts: T0,
+      mode: 'learn',
+      outcome: 'unknown',
+    }
+    const parsed = parseBackup(serialiseBackup(createBackup({ ...input, solves: [blank] }, T0)))
+    expect(parsed.solves).toEqual([blank])
+    expect('ms' in parsed.solves[0]!).toBe(false)
+  })
+
+  it('keeps a blank even though it has no ms, and still drops a timed one without', () => {
+    const backup = parseBackup(
+      JSON.stringify({
+        app: BACKUP_APP,
+        version: 2,
+        solves: [
+          { id: 'blank', caseId: 27, ts: T0, outcome: 'unknown' },
+          { id: 'timed', caseId: 27, ts: T0 + 1, outcome: 'solved' },
+        ],
+      }),
+    )
+    expect(backup.solves.map((attempt) => attempt.id)).toEqual(['blank'])
+  })
 })
 
 describe('mergeSolves', () => {
@@ -114,7 +163,8 @@ describe('mergeSolves', () => {
 
   it('never overwrites a solve already held under the same id', () => {
     const changed = { ...solve('a', 27, T0), ms: 99999 }
-    expect(mergeSolves(existing, [changed])[0]!.ms).toBe(3000)
+    const kept = mergeSolves(existing, [changed])[0]!
+    expect(kept.outcome === 'solved' && kept.ms).toBe(3000)
   })
 
   it('leaves the existing history untouched when there is nothing new', () => {

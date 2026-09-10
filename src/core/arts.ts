@@ -4,8 +4,14 @@
  * Every case carries an ACT-R style memory "activation" that decays with time
  * and is rebuilt by each encounter. The gap between how long a solve actually
  * took and how long the model predicted it would take nudges that case's
- * personal difficulty, alpha. Solve time is the only signal; there is no
- * self-rating.
+ * personal difficulty, alpha.
+ *
+ * Solve time is very nearly the only signal. The one exception is a blank —
+ * "I don't know", pressed before the timer was started — which the timer cannot
+ * express: worked out slowly it reads as known-but-slow, abandoned it teaches
+ * nothing, and walked away from it falls outside the time band and is thrown
+ * out. It is handled as a categorical failure rather than a slow solve; see the
+ * `entry.ms === null` branch of the replay.
  *
  * No model state is persisted. The whole model is a fold over the durable
  * solve history, so deleting one solve correctly un-learns it. The replay must
@@ -30,6 +36,14 @@ export interface ArtsConfig {
   /** Learning rate for alpha. */
   lr: number
   alphaInit: number
+  /**
+   * Alpha a blank ("I don't know") pulls a case up to, never down.
+   *
+   * A blank is not a noisy measurement, so it does not take an `lr`-sized step
+   * — that step is sized for timing jitter. It is a categorical failure, and
+   * lands the case most of the way to `alphaMax` in one go.
+   */
+  alphaBlank: number
   alphaMin: number
   alphaMax: number
   /** Decay bounds, purely to keep the exponentiation tame. */
@@ -79,6 +93,7 @@ export const ARTS_DEFAULTS: ArtsConfig = {
   F: 0.9,
   lr: 0.05,
   alphaInit: 0.3,
+  alphaBlank: 0.52,
   alphaMin: 0.05,
   alphaMax: 0.65,
   dMin: 0.05,
@@ -108,12 +123,15 @@ export interface Encounter {
   vt: number
   /** Decay rate applied to this encounter from here on. */
   d: number
+  /** True for an "I don't know". Read only by the display; see `blankedLast`. */
+  blank: boolean
 }
 
 export interface ArtsModel {
   alpha: ReadonlyMap<number, number>
   encounters: ReadonlyMap<number, readonly Encounter[]>
   floors: ReadonlyMap<number, number>
+  /** Timed solves per case. Blanks are not in here — they have no time. */
   counts: ReadonlyMap<number, number>
   /** Fitted turns per second. */
   tps: number
@@ -197,7 +215,8 @@ export function activation(encounters: readonly Encounter[] | undefined, vt: num
 
 interface Entry {
   caseId: number
-  ms: number
+  /** null for an "I don't know": nothing was timed. */
+  ms: number | null
   ts: number
   vt: number
 }
@@ -217,14 +236,21 @@ export function buildModel(
   const counts = new Map<number, number>()
   const served = solves.map((solve) => solve.caseId)
 
-  // 1. Usable solves. A time outside the band is someone walking away from the
-  //    timer or mis-triggering it, and must not teach the model anything —
+  // 1. Usable attempts. A time outside the band is someone walking away from
+  //    the timer or mis-triggering it, and must not teach the model anything —
   //    though it still counts for spacing and coverage, hence `served` above.
-  const entries: Entry[] = solves
-    .filter(
-      (solve) => Number.isFinite(solve.ms) && solve.ms >= config.minMs && solve.ms <= config.maxMs,
-    )
-    .map((solve) => ({ caseId: solve.caseId, ms: solve.ms, ts: solve.ts, vt: 0 }))
+  //
+  //    A blank has no time to fall inside or outside that band, and must
+  //    bypass it entirely: it is the single most informative thing the user can
+  //    tell this scheduler, and dropping it here would silently discard it.
+  const entries: Entry[] = []
+  for (const solve of solves) {
+    if (solve.outcome === 'unknown') {
+      entries.push({ caseId: solve.caseId, ms: null, ts: solve.ts, vt: 0 })
+    } else if (solve.ms >= config.minMs && solve.ms <= config.maxMs) {
+      entries.push({ caseId: solve.caseId, ms: solve.ms, ts: solve.ts, vt: 0 })
+    }
+  }
 
   if (entries.length === 0) {
     return { alpha, encounters, floors, counts, tps: config.defaultTps, vtNow: 0, served }
@@ -241,8 +267,12 @@ export function buildModel(
 
   // 3. Execution floors, so "slow because the algorithm is long" stops looking
   //    like "slow because I forgot it".
+  //    Blanks are excluded: a case's floor is the fastest it has been *solved*,
+  //    and a failure has no time to contribute. They must also stay out of the
+  //    turns-per-second fit and out of `counts`, both of which read this map.
   const byCase = new Map<number, number[]>()
   for (const entry of entries) {
+    if (entry.ms === null) continue
     const list = byCase.get(entry.caseId)
     if (list) list.push(entry.ms)
     else byCase.set(entry.caseId, [entry.ms])
@@ -301,23 +331,44 @@ export function buildModel(
       encounters.set(caseId, list)
     }
     const act = activation(list, entry.vt)
+    let d: number
 
-    if (list.length > 0 && Number.isFinite(act)) {
-      const predicted = config.F * Math.exp(-act)
-      const floor = floors.get(caseId) ?? 0
-      const recall = Math.max(0, entry.ms - floor) / 1000
-      // Bounded log-ratio: one wild solve moves alpha by one step, no more.
-      const ratio = clamp(Math.log(Math.max(recall, 0.05) / Math.max(predicted, 0.05)), -1, 1)
+    if (entry.ms === null) {
+      // A blank. Alpha jumps rather than stepping, and the encounter decays at
+      // the maximum rate.
+      //
+      // It has to be an encounter at all, or the case would keep reading as
+      // never introduced when in fact it has been met and failed. But an
+      // ordinary encounter *raises* activation, which would make a case you
+      // just blanked on look strong — so `dMax` collapses its contribution
+      // within a second or two of virtual time, and the case sinks to the
+      // bottom of the "lowest activation" ordering that `pickNext` serves from.
       alpha.set(
         caseId,
-        clamp(alpha.get(caseId)! + config.lr * ratio, config.alphaMin, config.alphaMax),
+        clamp(Math.max(alpha.get(caseId)!, config.alphaBlank), config.alphaMin, config.alphaMax),
+      )
+      d = config.dMax
+    } else {
+      if (list.length > 0 && Number.isFinite(act)) {
+        const predicted = config.F * Math.exp(-act)
+        const floor = floors.get(caseId) ?? 0
+        const recall = Math.max(0, entry.ms - floor) / 1000
+        // Bounded log-ratio: one wild solve moves alpha by one step, no more.
+        const ratio = clamp(Math.log(Math.max(recall, 0.05) / Math.max(predicted, 0.05)), -1, 1)
+        alpha.set(
+          caseId,
+          clamp(alpha.get(caseId)! + config.lr * ratio, config.alphaMin, config.alphaMax),
+        )
+      }
+
+      d = clamp(
+        Number.isFinite(act) ? config.c * Math.exp(act) + alpha.get(caseId)! : alpha.get(caseId)!,
+        config.dMin,
+        config.dMax,
       )
     }
 
-    const d = Number.isFinite(act)
-      ? config.c * Math.exp(act) + alpha.get(caseId)!
-      : alpha.get(caseId)!
-    list.push({ vt: entry.vt, d: clamp(d, config.dMin, config.dMax) })
+    list.push({ vt: entry.vt, d, blank: entry.ms === null })
     if (list.length > config.maxEncounters) list.shift()
   }
 
@@ -449,6 +500,21 @@ export function pickRotation(
 // Display
 // ---------------------------------------------------------------------------
 
+/**
+ * True when the last thing that happened to this case was a blank.
+ *
+ * `pickNext` needs no such special case: by the time it runs, real time has
+ * passed and a `dMax` encounter has already decayed to nothing. The *display*
+ * does. The model is rebuilt only when the solve history changes, so it stays
+ * frozen at the instant the blank was recorded — where `dt` is still the
+ * one-second floor and activation has not begun to fall. Without this, the case
+ * you just failed would sit in the Cases tab reading almost fully strong, at
+ * exactly the moment you are most likely to look at it.
+ */
+function blankedLast(list: readonly Encounter[] | undefined): boolean {
+  return list?.at(-1)?.blank === true
+}
+
 /** Memory strength as 0..1, or null for a case never seen. */
 export function strength(
   model: ArtsModel,
@@ -457,6 +523,7 @@ export function strength(
 ): number | null {
   const list = model.encounters.get(caseId)
   if (!list || list.length === 0) return null
+  if (blankedLast(list)) return 0
   const act = activation(list, model.vtNow)
   return clamp((act - config.tau) / config.strengthSpan, 0, 1)
 }
@@ -468,6 +535,7 @@ export function isAtRisk(
 ): boolean {
   const list = model.encounters.get(caseId)
   if (!list || list.length === 0) return false
+  if (blankedLast(list)) return true
   return activation(list, model.vtNow) <= config.tau
 }
 
@@ -489,7 +557,7 @@ export function learnStatus(
     const list = model.encounters.get(caseId)
     if (!list || list.length === 0) continue
     introduced++
-    if (activation(list, model.vtNow) <= config.tau) atRisk++
+    if (blankedLast(list) || activation(list, model.vtNow) <= config.tau) atRisk++
   }
   return { introduced, total: selection.length, atRisk }
 }

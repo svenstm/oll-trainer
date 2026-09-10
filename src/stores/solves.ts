@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import { defineStore } from 'pinia'
 
 import { parseSolves } from '@/core/parse'
-import type { Solve } from '@/core/types'
+import type { NewSolve, Solve } from '@/core/types'
 import { asFiniteNumber, isRecord, persistedRef, writeStored } from './persist'
 
 function parseSession(raw: unknown): { startedAt: number } | null {
@@ -96,7 +96,7 @@ export const useSolvesStore = defineStore('solves', () => {
     solves.value = [...next].sort((a, b) => a.ts - b.ts)
   }
 
-  function record(input: Omit<Solve, 'id'>): Solve {
+  function record(input: NewSolve): Solve {
     const solve: Solve = { ...input, id: newSolveId(input.ts) }
     insert(solve)
     return solve

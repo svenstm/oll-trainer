@@ -326,6 +326,17 @@ describe('ResultsPanel', () => {
     scramble: 'R U',
     rotation: '',
     ts: 1000,
+    outcome: 'solved',
+    mode: 'train',
+  })
+
+  const blank = (id: string, caseId: number): Solve => ({
+    id,
+    caseId,
+    scramble: 'R U',
+    rotation: '',
+    ts: 1000,
+    outcome: 'unknown',
     mode: 'train',
   })
 
@@ -370,6 +381,55 @@ describe('ResultsPanel', () => {
     })
     await wrapper.get('[data-testid="delete-b"]').trigger('click')
     expect(wrapper.emitted('delete')).toEqual([['b']])
+  })
+
+  it('keeps a blank out of every time statistic, and counts it separately', () => {
+    const withBlank = [...solves, blank('d', 27)]
+    const wrapper = mount(ResultsPanel, {
+      props: { sessionSolves: withBlank, allSolves: withBlank, mode: 'train' },
+    })
+    // The solves tile still says 3: a blank is not a solve.
+    expect(wrapper.get('[data-testid="blank-count"]').text()).toContain('1 blanked')
+    const summary = wrapper.get('[data-testid="panel-session"] dl').text()
+    // The mean is unchanged at 3.00 — a zero folded in would have halved it.
+    expect(summary).toContain('3.00')
+    expect(summary).toContain('1.00')
+  })
+
+  it('shows a blank in the list with no time, and names it for a screen reader', () => {
+    const withBlank = [blank('d', 27), ...solves]
+    const wrapper = mount(ResultsPanel, {
+      props: { sessionSolves: withBlank, allSolves: withBlank, mode: 'train' },
+    })
+    const rows = wrapper.findAll('[data-testid="panel-session"] li')
+    // Newest first, and the blank is the oldest here.
+    expect(rows.at(-1)!.find('[data-testid="blank-time"]').exists()).toBe(true)
+    expect(rows.at(-1)!.text()).toContain("Didn't know")
+    expect(wrapper.get('[data-testid="delete-d"]').attributes('aria-label')).toBe(
+      'Delete the blank for OLL 27',
+    )
+  })
+
+  it('tallies blanks per case without disturbing the mean or the count', async () => {
+    const withBlank = [...solves, blank('d', 27), blank('e', 27)]
+    const wrapper = mount(ResultsPanel, {
+      props: { sessionSolves: withBlank, allSolves: withBlank, mode: 'train' },
+    })
+    await wrapper.get('[data-testid="tab-cases"]').trigger('click')
+    expect(wrapper.get('[data-testid="blanks-27"]').text()).toContain('2')
+    const row = wrapper.findAll('[data-testid="panel-cases"] tbody tr').at(-1)!
+    expect(row.text()).toContain('2x')
+    expect(row.text()).toContain('2.00')
+  })
+
+  it('puts a case you have only ever blanked on above the merely slow ones', async () => {
+    const withBlank = [...solves, blank('d', 33)]
+    const wrapper = mount(ResultsPanel, {
+      props: { sessionSolves: withBlank, allSolves: withBlank, mode: 'train' },
+    })
+    await wrapper.get('[data-testid="tab-cases"]').trigger('click')
+    const rows = wrapper.findAll('[data-testid="panel-cases"] tbody tr')
+    expect(rows[0]!.text()).toContain('OLL 33')
   })
 
   it('says so when there is nothing to show', () => {
@@ -507,6 +567,162 @@ describe('the case reveal', () => {
     }
     // And it really is the same case, just turned.
     expect(patternKey(canonicalPattern(served))).toBe(patternKey(CASES_BY_ID.get(27)!.pattern))
+  })
+})
+
+describe("I don't know", () => {
+  beforeEach(() => {
+    useSelectionStore().set([27, 21, 33, 45])
+    useSettingsStore().update({ holdMs: 0 })
+  })
+
+  /** Which case a scramble on screen actually sets up. */
+  function caseIdOf(scramble: string): number {
+    const wanted = patternKey(canonicalPattern(patternFromCube(applyMoves(SOLVED, scramble))))
+    for (const ollCase of CASES_BY_ID.values()) {
+      if (patternKey(ollCase.pattern) === wanted) return ollCase.id
+    }
+    throw new Error(`no case sets up ${scramble}`)
+  }
+
+  it('records a blank with no time and shows the solution', async () => {
+    const wrapper = await mountPractice('learn')
+    const caseId = caseIdOf(wrapper.get('[data-testid="scramble"]').text())
+
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+
+    const recorded = useSolvesStore().solves
+    expect(recorded).toHaveLength(1)
+    expect(recorded[0]).toMatchObject({ caseId, outcome: 'unknown' })
+    expect('ms' in recorded[0]!).toBe(false)
+
+    const reveal = wrapper.get('[data-testid="case-reveal"]')
+    expect(reveal.text()).toContain("Didn't know")
+    expect(reveal.text()).toContain(CASES_BY_ID.get(caseId)!.alg)
+  })
+
+  it('is reachable from the keyboard', async () => {
+    const wrapper = await mountPractice('learn')
+    key('keydown', { key: 'i' })
+    await nextTick()
+    expect(useSolvesStore().count).toBe(1)
+    expect(wrapper.find('[data-testid="study-controls"]').exists()).toBe(true)
+  })
+
+  it('leaves the setup exactly where it was, so the algorithm can be repeated', async () => {
+    const wrapper = await mountPractice('learn')
+    const scramble = wrapper.get('[data-testid="scramble"]').text()
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+    expect(wrapper.get('[data-testid="scramble"]').text()).toBe(scramble)
+  })
+
+  it('takes the timer away entirely rather than leaving a dead one on screen', async () => {
+    const wrapper = await mountPractice('learn')
+    expect(wrapper.find('[data-testid="timer"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+    expect(wrapper.find('[data-testid="timer"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="dont-know"]').exists()).toBe(false)
+  })
+
+  it('cannot be timed while the solution is on screen', async () => {
+    const wrapper = await mountPractice('learn')
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+
+    // A tap on the surface would normally arm it; here there is nothing to arm.
+    const surface = wrapper.get('[data-testid="timer-surface"]')
+    await surface.trigger('touchstart')
+    await surface.trigger('touchend')
+    expect(wrapper.find('[data-testid="timer"]').exists()).toBe(false)
+    expect(useSolvesStore().count).toBe(1)
+  })
+
+  it('moves on only when asked, and space is what asks', async () => {
+    const wrapper = await mountPractice('learn')
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+
+    key('keydown', { key: ' ' })
+    key('keyup', { key: ' ' })
+    await nextTick()
+
+    // Space moved on rather than starting a solve.
+    expect(useSolvesStore().count).toBe(1)
+    expect(wrapper.find('[data-testid="study-controls"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="timer"]').exists()).toBe(true)
+  })
+
+  it('hands the timer back once study is over', async () => {
+    const wrapper = await mountPractice('learn')
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+    await wrapper.get('[data-testid="next-case"]').trigger('click')
+    await doSolve()
+    const recorded = useSolvesStore().solves
+    expect(recorded.map((attempt) => attempt.outcome)).toEqual(['unknown', 'solved'])
+  })
+
+  it('serves the same case again, solution hidden, for an honest measurement', async () => {
+    const wrapper = await mountPractice('learn')
+    const caseId = caseIdOf(wrapper.get('[data-testid="scramble"]').text())
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+    await wrapper.get('[data-testid="try-timed"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="case-reveal"]').exists()).toBe(false)
+    expect(caseIdOf(wrapper.get('[data-testid="scramble"]').text())).toBe(caseId)
+
+    await doSolve()
+    const recorded = useSolvesStore().solves
+    expect(recorded).toHaveLength(2)
+    expect(recorded[1]).toMatchObject({ caseId, outcome: 'solved' })
+  })
+
+  it('leaves study on Escape, keeping the setup that is already on the cube', async () => {
+    const wrapper = await mountPractice('learn')
+    const scramble = wrapper.get('[data-testid="scramble"]').text()
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+
+    key('keydown', { key: 'Escape' })
+    await nextTick()
+    expect(wrapper.find('[data-testid="study-controls"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="scramble"]').text()).toBe(scramble)
+  })
+
+  it('does nothing once a solve is already in flight', async () => {
+    const wrapper = await mountPractice('learn')
+    key('keydown', { key: ' ' })
+    await nextTick()
+    expect(wrapper.get('[data-testid="timer"]').attributes('data-phase')).toBe('ready')
+
+    key('keydown', { key: 'i' })
+    await nextTick()
+    expect(useSolvesStore().count).toBe(0)
+    expect(wrapper.find('[data-testid="study-controls"]').exists()).toBe(false)
+  })
+
+  it('does not keep filling a phone with a surface that catches nothing', async () => {
+    const wrapper = await mountPractice('learn')
+    const surface = wrapper.get('[data-testid="timer-surface"]')
+    expect(surface.classes()).toContain('grow')
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+    // Otherwise the solution — the only thing that matters here — is pushed
+    // below the fold by an inert touch target.
+    expect(surface.classes()).not.toContain('grow')
+    expect(surface.classes()).not.toContain('touch-none')
+  })
+
+  it('offers an undo when the blank itself is deleted', async () => {
+    const wrapper = await mountPractice('learn')
+    await wrapper.get('[data-testid="dont-know"]').trigger('click')
+    key('keydown', { key: 'Delete' })
+    await nextTick()
+    expect(useSolvesStore().count).toBe(0)
+    expect(wrapper.get('[data-testid="undo-toast"]').text()).toContain("I don't know")
+  })
+
+  it('is available in every mode', async () => {
+    for (const mode of ['train', 'recap', 'learn'] as const) {
+      const wrapper = await mountPractice(mode)
+      expect(wrapper.find('[data-testid="dont-know"]').exists(), mode).toBe(true)
+      wrapper.unmount()
+    }
   })
 })
 

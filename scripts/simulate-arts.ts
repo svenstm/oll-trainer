@@ -90,6 +90,7 @@ function simulate(sessions: readonly Session[], config: ArtsConfig, seed: number
         rotation,
         ts,
         mode: 'learn',
+        outcome: 'solved',
       })
       ts += Math.round(ms + 3000 + random() * 4000)
     }

@@ -17,6 +17,11 @@ Three modes:
 - **Learn** — ARTS adaptive scheduling, backed by a durable solve history that
   survives clearing the session and days away from the app.
 
+In every mode, a case you look at and blank on gets **I don't know** (or `i`)
+rather than a guess. It shows you the algorithm and holds the setup on screen,
+so you can run it against the cube already in your hands as many times as you
+like — and it tells the scheduler the one thing a stopwatch cannot.
+
 ## Credit
 
 The original OLL trainer, and the idea this app rebuilds, are the work of

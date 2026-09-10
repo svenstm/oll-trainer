@@ -9,7 +9,16 @@
 
 import { CASES_BY_ID } from './data/cases'
 import { ARTS_DEFAULTS } from './arts'
-import { MODES, type Mode, type Rotation, type Settings, type Solve, type Theme } from './types'
+import {
+  MODES,
+  OUTCOMES,
+  type Mode,
+  type Outcome,
+  type Rotation,
+  type Settings,
+  type Solve,
+  type Theme,
+} from './types'
 
 const ROTATIONS: readonly Rotation[] = ['', 'y', 'y2', "y'"]
 const THEMES: readonly Theme[] = ['light', 'dark', 'system']
@@ -37,19 +46,28 @@ export function clampNumber(value: number, lo: number, hi: number): number {
 export function parseSolve(raw: unknown): Solve | null {
   if (!isRecord(raw)) return null
   const caseId = asFiniteNumber(raw.caseId, Number.NaN)
-  const ms = asFiniteNumber(raw.ms, Number.NaN)
   const ts = asFiniteNumber(raw.ts, Number.NaN)
-  // Without a real case, time and timestamp, a solve teaches the model nothing.
-  if (!CASES_BY_ID.has(caseId) || !Number.isFinite(ms) || !Number.isFinite(ts)) return null
-  return {
+  // Without a real case and a timestamp, an attempt teaches the model nothing.
+  if (!CASES_BY_ID.has(caseId) || !Number.isFinite(ts)) return null
+
+  const base = {
     id: typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : `${caseId}-${ts}`,
     caseId,
-    ms,
     scramble: typeof raw.scramble === 'string' ? raw.scramble : '',
     rotation: asOneOf<Rotation>(raw.rotation, ROTATIONS, ''),
     ts,
     mode: asOneOf<Mode>(raw.mode, MODES, 'train'),
   }
+
+  // Anything written before "I don't know" existed has no outcome, and every
+  // attempt in it was timed — so `solved` is the only safe default.
+  if (asOneOf<Outcome>(raw.outcome, OUTCOMES, 'solved') === 'unknown') {
+    return { ...base, outcome: 'unknown' }
+  }
+
+  const ms = asFiniteNumber(raw.ms, Number.NaN)
+  if (!Number.isFinite(ms)) return null
+  return { ...base, outcome: 'solved', ms }
 }
 
 /** Oldest first, which is what the ARTS replay requires. */

@@ -76,6 +76,7 @@ function run(sessions: readonly { gapDays: number; solves: number }[], seed = 5)
         rotation: pickRotation(caseId, solves, random),
         ts,
         mode: 'learn',
+        outcome: 'solved',
       })
       ts += ms + 4000
     }

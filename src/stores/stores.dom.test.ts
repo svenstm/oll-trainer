@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { CASES } from '@/core/data/cases'
 import { ARTS_DEFAULTS } from '@/core/arts'
-import type { Solve } from '@/core/types'
+import type { NewSolve } from '@/core/types'
 import { resetStorageCache, storageKey, SCHEMA_VERSION } from './persist'
 import { DEFAULT_SETTINGS, useSettingsStore } from './settings'
 import { useSelectionStore } from './selection'
@@ -11,8 +11,8 @@ import { useSolvesStore } from './solves'
 
 const T0 = Date.UTC(2026, 0, 1, 12, 0, 0)
 
-function solve(caseId: number, ts: number, ms = 3000): Omit<Solve, 'id'> {
-  return { caseId, ms, scramble: 'R U', rotation: '', ts, mode: 'train' }
+function solve(caseId: number, ts: number, ms = 3000): NewSolve {
+  return { caseId, ms, scramble: 'R U', rotation: '', ts, mode: 'train', outcome: 'solved' }
 }
 
 /** A fresh Pinia and an empty localStorage. */
@@ -55,6 +55,23 @@ describe('persistence', () => {
     const reloaded = useSolvesStore()
     expect(reloaded.solves).toHaveLength(2)
     expect(reloaded.sessionSolves.map((s) => s.caseId)).toEqual([21])
+  })
+
+  it('round-trips a blank, which survives without an ms at all', () => {
+    const store = useSolvesStore()
+    store.record({
+      caseId: 27,
+      scramble: 'R U',
+      rotation: 'y',
+      ts: T0,
+      mode: 'learn',
+      outcome: 'unknown',
+    })
+    reload()
+    const reloaded = useSolvesStore().solves
+    expect(reloaded).toHaveLength(1)
+    expect(reloaded[0]).toMatchObject({ caseId: 27, outcome: 'unknown', rotation: 'y' })
+    expect('ms' in reloaded[0]!).toBe(false)
   })
 
   it('falls back to defaults on corrupt data rather than crashing', () => {

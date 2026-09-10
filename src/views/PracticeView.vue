@@ -29,8 +29,18 @@ const selection = useSelectionStore()
 const solves = useSolvesStore()
 
 const current = ref<PickedScramble | null>(null)
-const revealed = ref<{ caseId: number; ms: number; pattern: Pattern } | null>(null)
+const revealed = ref<{ caseId: number; ms: number | null; pattern: Pattern } | null>(null)
 const showSettings = ref(false)
+
+/**
+ * Study mode. The user pressed "I don't know", so the setup stays on screen —
+ * and on the cube in front of them — with the solution beside it, for as many
+ * untimed reps as they want. Nothing moves on until they say so.
+ *
+ * A null `ms` is what makes an attempt a blank, so it is also what identifies
+ * this state; there is no second flag that could disagree with it.
+ */
+const studying = computed(() => revealed.value?.ms === null)
 /** Where recap has got to. Deliberately not persisted; a session starts fresh. */
 let recapIndex = -1
 
@@ -99,6 +109,7 @@ function onSolve(ms: number): void {
     rotation: picked.rotation,
     ts: Date.now(),
     mode: props.mode,
+    outcome: 'solved',
   })
   revealed.value = {
     caseId: picked.caseId,
@@ -109,13 +120,79 @@ function onSolve(ms: number): void {
 }
 
 /**
+ * "I don't know", pressed before the timer was ever started.
+ *
+ * The attempt is written immediately rather than on leaving study, so closing
+ * the tab mid-study still leaves the scheduler correctly informed. There is
+ * deliberately no `drawNext()`: the setup has to stay put so the algorithm can
+ * be repeated against the cube already in front of the user.
+ */
+function markUnknown(): void {
+  const picked = current.value
+  // Only from a standing start: mid-hold there is a solve in flight, and the
+  // timer is about to be switched off underneath it.
+  if (!picked || studying.value || phase.value !== 'idle') return
+  solves.record({
+    caseId: picked.caseId,
+    scramble: picked.scramble,
+    rotation: picked.rotation,
+    ts: Date.now(),
+    mode: props.mode,
+    outcome: 'unknown',
+  })
+  revealed.value = {
+    caseId: picked.caseId,
+    ms: null,
+    pattern: patternFromCube(applyMoves(SOLVED, picked.scramble)),
+  }
+}
+
+/** Leaves study for whatever the scheduler picks next. */
+function nextCase(): void {
+  revealed.value = null
+  drawNext()
+}
+
+/**
+ * Leaves study and serves the same case again with the solution hidden — the
+ * honest measurement, taken at the moment it is most informative. A fresh
+ * scramble, and in learn mode the angle seen least, so it is a real recall and
+ * not a replay of the setup still on screen.
+ */
+function tryTimed(): void {
+  const caseId = revealed.value?.caseId
+  revealed.value = null
+  if (caseId === undefined) return
+  const rotation =
+    props.mode === 'learn' ? pickRotation(caseId, solves.solves, Math.random) : undefined
+  current.value = pickScramble(caseId, Math.random, rotation)
+}
+
+/**
+ * Runs an action, then drops focus.
+ *
+ * `useTimer` deliberately ignores space on interactive targets, so a button
+ * left holding focus would swallow the next space press instead of arming the
+ * timer. Each of these buttons happens to unmount on activation, which moves
+ * focus to the body anyway — but that is a side effect of a `v-if` elsewhere,
+ * not something this view should be relying on.
+ */
+function andBlur(action: () => void, event: Event): void {
+  action()
+  ;(event.currentTarget as HTMLElement | null)?.blur()
+}
+
+/**
  * Deleting is undoable rather than confirmed: a dialog on every delete would
  * be in the way, and a mis-hit Delete during a session is easy to do.
  */
 const undoable = ref<Solve | null>(null)
-const undoText = computed(() =>
-  undoable.value ? `Deleted ${formatMs(undoable.value.ms)} — OLL ${undoable.value.caseId}` : null,
-)
+const undoText = computed(() => {
+  const solve = undoable.value
+  if (!solve) return null
+  const what = solve.outcome === 'unknown' ? "\u201CI don't know\u201D" : formatMs(solve.ms)
+  return `Deleted ${what} — OLL ${solve.caseId}`
+})
 let undoTimer: ReturnType<typeof setTimeout> | undefined
 
 function offerUndo(solve: Solve | null): void {
@@ -137,6 +214,18 @@ function onShortcut(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     showSettings.value = false
     revealed.value = null
+    return
+  }
+  // Space does nothing while the timer is off, which frees it to be the way
+  // forward — the same key that moves you on everywhere else here.
+  if (studying.value && (event.key === ' ' || event.key === 'Enter')) {
+    event.preventDefault()
+    nextCase()
+    return
+  }
+  if (event.key.toLowerCase() === 'i' && !studying.value) {
+    event.preventDefault()
+    markUnknown()
     return
   }
   if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -166,6 +255,9 @@ function onShortcut(event: KeyboardEvent): void {
 // template the way top-level setup bindings are.
 const { phase, displayMs, armed, touchHandlers } = useTimer({
   holdMs: computed(() => settings.holdMs),
+  // A rep taken with the solution on screen is neither an honest time nor an
+  // honest recall, so while studying there is nothing to take it with.
+  enabled: computed(() => !studying.value),
   onSolve,
   onShortcut,
 })
@@ -331,11 +423,17 @@ watch(
       results list stay outside it — with the handlers on <main> every tap in
       the view was swallowed and no button or scroll gesture worked.
 
+      Neither `grow` nor `touch-none` applies while studying: there is no
+      gesture to catch, and on a phone a surface still filling the screen's
+      middle would push the solution — the only thing on screen that matters
+      in that state — below the fold.
+
       touch-none because this element handles the gesture itself; the rest of
       the page still scrolls normally.
     -->
     <section
-      class="no-select flex grow touch-none flex-col items-center justify-center gap-4 py-4 sm:grow-0 sm:py-8"
+      class="no-select flex flex-col items-center justify-center gap-4 py-4 sm:grow-0 sm:py-8"
+      :class="studying ? '' : 'grow touch-none'"
       data-testid="timer-surface"
       v-on="touchHandlers"
     >
@@ -345,15 +443,39 @@ watch(
         :size="settings.scrambleSize"
         class="mx-auto max-w-3xl text-center"
       />
-      <TimerDisplay :ms="displayMs" :phase="phase" :size="settings.timerSize" />
-      <p class="h-5 text-center text-sm text-muted">
-        <template v-if="phase === 'idle'">
+      <!--
+        Gone entirely while studying, rather than zeroed: a timer on screen in a
+        state where the timer does nothing is a control that lies about being
+        available, and its absence is how you see this state is different.
+      -->
+      <TimerDisplay v-if="!studying" :ms="displayMs" :phase="phase" :size="settings.timerSize" />
+      <!-- min-h rather than a fixed height: the study line wraps on a phone. -->
+      <p class="min-h-5 max-w-md text-center text-sm text-muted">
+        <template v-if="studying">
+          Apply the setup, then the algorithm — the cube ends solved. Repeat as often as you like.
+        </template>
+        <template v-else-if="phase === 'idle'">
           <span class="hidden sm:inline">Hold space to get ready, release to start.</span>
           <span class="sm:hidden">Hold here to get ready, release to start.</span>
         </template>
         <template v-else-if="phase === 'holding'">Keep holding…</template>
         <template v-else-if="armed">Release to start.</template>
       </p>
+
+      <!--
+        A real <button>, which `useTimer` treats as an interactive target — so
+        tapping it can never also arm the timer underneath.
+      -->
+      <button
+        v-if="current && !studying && phase === 'idle'"
+        type="button"
+        class="rounded-lg border border-border px-3 py-1.5 text-sm text-muted hover:bg-surface hover:text-fg"
+        data-testid="dont-know"
+        @click="andBlur(markUnknown, $event)"
+      >
+        I don't know
+        <kbd class="ml-1 hidden font-mono text-xs opacity-60 sm:inline">i</kbd>
+      </button>
     </section>
 
     <Transition
@@ -373,6 +495,27 @@ watch(
         :pattern="revealed.pattern"
       />
     </Transition>
+
+    <!-- Outside the Transition above, which takes a single child. -->
+    <div v-if="studying" class="flex flex-wrap items-center gap-2" data-testid="study-controls">
+      <button
+        type="button"
+        class="rounded-lg border border-accent bg-accent/10 px-3 py-1.5 text-sm text-accent hover:bg-accent/20"
+        data-testid="next-case"
+        @click="andBlur(nextCase, $event)"
+      >
+        Next case
+        <kbd class="ml-1 hidden font-mono text-xs opacity-60 sm:inline">space</kbd>
+      </button>
+      <button
+        type="button"
+        class="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface"
+        data-testid="try-timed"
+        @click="andBlur(tryTimed, $event)"
+      >
+        Try it timed
+      </button>
+    </div>
 
     <ResultsPanel
       :session-solves="solves.sessionSolves"

@@ -11,7 +11,14 @@ import { isRecord, parseSelection, parseSettings, parseSolves } from './parse'
 import type { Settings, Solve } from './types'
 
 export const BACKUP_APP = 'oll-trainer'
-export const BACKUP_VERSION = 1
+/**
+ * 2 added `outcome` to a solve. A v1 file has none, and every attempt in it was
+ * timed, so reading one is lossless. Writing v2 matters the other way round: an
+ * older build reads the version, refuses the file, and says so — rather than
+ * quietly taking every blank in it for an ordinary solve and poisoning its own
+ * execution floors with phantom times.
+ */
+export const BACKUP_VERSION = 2
 
 export interface Backup {
   app: typeof BACKUP_APP

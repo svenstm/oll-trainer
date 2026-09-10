@@ -30,7 +30,10 @@ const recent = computed(() => [...props.sessionSolves].reverse())
 interface CaseRow {
   id: number
   name: string
+  /** Timed solves. */
   count: number
+  /** Attempts that ended in "I don't know". */
+  blanks: number
   mean: number | null
   best: number | null
   /** Chronological, for the sparkline. */
@@ -42,23 +45,41 @@ interface CaseRow {
  * answers "how am I doing on this case", which outlives one sitting.
  */
 const caseRows = computed<CaseRow[]>(() => {
-  const byCase = new Map<number, number[]>()
+  const byCase = new Map<number, { times: number[]; blanks: number }>()
   for (const solve of props.allSolves) {
-    const list = byCase.get(solve.caseId)
-    if (list) list.push(solve.ms)
-    else byCase.set(solve.caseId, [solve.ms])
+    let row = byCase.get(solve.caseId)
+    if (!row) {
+      row = { times: [], blanks: 0 }
+      byCase.set(solve.caseId, row)
+    }
+    // A blank is counted but has no time, so it stays out of the mean, the best
+    // and the sparkline — every one of which would otherwise read a failure as
+    // an improvement.
+    if (solve.outcome === 'unknown') row.blanks++
+    else row.times.push(solve.ms)
   }
   return [...byCase.entries()]
-    .map(([id, times]) => ({
+    .map(([id, { times, blanks }]) => ({
       id,
       name: CASES_BY_ID.get(id)?.name ?? `OLL ${id}`,
       count: times.length,
+      blanks,
       mean: mean(times),
       best: times.length > 0 ? Math.min(...times) : null,
       times,
     }))
-    .sort((a, b) => (b.mean ?? 0) - (a.mean ?? 0))
+    .sort((a, b) => {
+      // A case you have blanked on and never once solved belongs above the
+      // merely slow ones, not below them with a mean of nothing.
+      if ((a.mean === null) !== (b.mean === null)) return a.mean === null ? -1 : 1
+      return (b.mean ?? 0) - (a.mean ?? 0)
+    })
 })
+
+/** What the delete button should call this row, blank or not. */
+function attemptLabel(solve: Solve): string {
+  return solve.outcome === 'unknown' ? 'the blank' : `solve ${formatMs(solve.ms)}`
+}
 
 const SUMMARY = [
   ['solves', (s: ReturnType<typeof statsFor>) => String(s.count)],
@@ -93,6 +114,17 @@ const SUMMARY = [
         <div v-for="[label, value] in SUMMARY" :key="label" class="bg-surface px-3 py-2">
           <dt class="text-xs text-muted">{{ label }}</dt>
           <dd class="font-mono text-sm tabular-nums">{{ value(stats) }}</dd>
+          <!--
+            Only the solves tile carries a second line, so the 3-then-6 column
+            grid keeps its shape rather than growing a ragged seventh cell.
+          -->
+          <dd
+            v-if="label === 'solves' && stats.blanks > 0"
+            class="text-xs text-danger"
+            data-testid="blank-count"
+          >
+            {{ stats.blanks }} blanked
+          </dd>
         </div>
       </dl>
 
@@ -108,14 +140,22 @@ const SUMMARY = [
           <span class="w-6 text-right text-xs text-muted tabular-nums">
             {{ recent.length - index }}
           </span>
-          <span class="font-mono tabular-nums">{{ formatMs(solve.ms) }}</span>
+          <span
+            v-if="solve.outcome === 'unknown'"
+            class="font-mono text-danger"
+            data-testid="blank-time"
+          >
+            <span aria-hidden="true">&mdash;</span>
+            <span class="sr-only">Didn't know</span>
+          </span>
+          <span v-else class="font-mono tabular-nums">{{ formatMs(solve.ms) }}</span>
           <span class="min-w-0 flex-1 truncate text-muted">
             OLL {{ solve.caseId }} · {{ CASES_BY_ID.get(solve.caseId)?.name }}
           </span>
           <button
             type="button"
             class="rounded px-1.5 text-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-danger"
-            :aria-label="`Delete solve ${formatMs(solve.ms)}`"
+            :aria-label="`Delete ${attemptLabel(solve)} for OLL ${solve.caseId}`"
             :data-testid="`delete-${solve.id}`"
             @click="emit('delete', solve.id)"
           >
@@ -142,7 +182,15 @@ const SUMMARY = [
               <span class="text-muted">OLL {{ row.id }}</span>
               <span class="ml-1.5">{{ row.name }}</span>
             </td>
-            <td class="py-1.5 pr-2 text-right tabular-nums text-muted">{{ row.count }}x</td>
+            <td class="py-1.5 pr-2 text-right tabular-nums text-muted">
+              {{ row.count }}x<span
+                v-if="row.blanks > 0"
+                class="ml-1 text-danger"
+                title="Times you did not know this case"
+                :data-testid="`blanks-${row.id}`"
+                >{{ `· ${row.blanks}?` }}</span
+              >
+            </td>
             <td class="py-1.5 pr-2 text-right font-mono tabular-nums">
               {{ row.mean === null ? '—' : formatMs(row.mean) }}
             </td>

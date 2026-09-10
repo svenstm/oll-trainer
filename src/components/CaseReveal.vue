@@ -5,7 +5,8 @@ import type { OllCase, Pattern } from '@/core/types'
 
 defineProps<{
   ollCase: OllCase
-  ms: number
+  /** null for an "I don't know": there is no time, because nothing was timed. */
+  ms: number | null
   /**
    * The orientation actually just solved. Cases are stored in a canonical
    * rotation, but a scramble shows one at any of four angles, and drawing the
@@ -29,7 +30,10 @@ defineProps<{
       <p class="flex flex-wrap items-baseline gap-x-2">
         <span class="text-lg font-semibold">OLL {{ ollCase.id }}</span>
         <span class="text-lg">{{ ollCase.name }}</span>
-        <span class="font-mono text-lg tabular-nums text-accent">{{ formatMs(ms) }}</span>
+        <span v-if="ms === null" class="text-lg font-medium text-danger" data-testid="didnt-know">
+          Didn't know
+        </span>
+        <span v-else class="font-mono text-lg tabular-nums text-accent">{{ formatMs(ms) }}</span>
       </p>
       <p class="text-sm text-muted">{{ ollCase.group }}</p>
 

@@ -11,6 +11,7 @@ function harness(holdMs = 0) {
   const solves: number[] = []
   const shortcuts: string[] = []
   const hold = ref(holdMs)
+  const enabled = ref(true)
   let api: ReturnType<typeof useTimer>
 
   const wrapper = mount(
@@ -18,6 +19,7 @@ function harness(holdMs = 0) {
       setup() {
         api = useTimer({
           holdMs: hold,
+          enabled,
           onSolve: (ms) => solves.push(ms),
           onShortcut: (event) => shortcuts.push(event.key),
         })
@@ -44,7 +46,7 @@ function harness(holdMs = 0) {
     { attachTo: document.body },
   )
 
-  return { wrapper, solves, shortcuts, hold, key, api: () => api }
+  return { wrapper, solves, shortcuts, hold, enabled, key, api: () => api }
 }
 
 describe('useTimer keyboard wiring', () => {
@@ -243,5 +245,43 @@ describe('useTimer keyboard wiring', () => {
     expect(remove).toHaveBeenCalledWith('keydown', expect.any(Function))
     expect(remove).toHaveBeenCalledWith('keyup', expect.any(Function))
     remove.mockRestore()
+  })
+})
+
+describe('switched off', () => {
+  it('cannot be started by key or by tap', async () => {
+    const { wrapper, solves, enabled } = harness()
+    enabled.value = false
+    key('keydown', { key: ' ' })
+    key('keyup', { key: ' ' })
+    key('keydown', { key: 'a' })
+    expect(solves).toEqual([])
+
+    const surface = wrapper.get('[data-testid="surface"]')
+    await surface.trigger('touchstart')
+    await surface.trigger('touchend')
+    expect(solves).toEqual([])
+    expect(wrapper.text()).toContain('idle')
+  })
+
+  it('hands space to the view instead, still swallowing the page scroll', () => {
+    const { shortcuts, enabled } = harness()
+    enabled.value = false
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    window.dispatchEvent(event)
+    expect(shortcuts).toEqual([' '])
+    expect(event.defaultPrevented).toBe(true)
+  })
+
+  it('gives the timer straight back when switched on again', () => {
+    const { solves, enabled } = harness()
+    enabled.value = false
+    key('keydown', { key: ' ' })
+    key('keyup', { key: ' ' })
+    enabled.value = true
+    key('keydown', { key: ' ' })
+    key('keyup', { key: ' ' })
+    key('keydown', { key: 'a' })
+    expect(solves).toHaveLength(1)
   })
 })
