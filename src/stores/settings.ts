@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { defineStore } from 'pinia'
 
-import { ARTS_DEFAULTS } from '@/core/arts'
+import { PACE_DEFAULTS } from '@/core/pace'
 import { DEFAULT_SETTINGS, LIMITS, parseSettings } from '@/core/parse'
 import type { Settings } from '@/core/types'
 import { persistedRef } from './persist'
@@ -20,7 +20,7 @@ export const useSettingsStore = defineStore('settings', () => {
     settings.value = { ...DEFAULT_SETTINGS }
   }
 
-  const artsConfig = computed(() => ({ ...ARTS_DEFAULTS, tau: settings.value.tau }))
+  const paceConfig = computed(() => ({ ...PACE_DEFAULTS, introEvery: settings.value.introEvery }))
 
   return {
     settings,
@@ -28,8 +28,8 @@ export const useSettingsStore = defineStore('settings', () => {
     timerSize: computed(() => settings.value.timerSize),
     scrambleSize: computed(() => settings.value.scrambleSize),
     holdMs: computed(() => settings.value.holdMs),
-    tau: computed(() => settings.value.tau),
-    artsConfig,
+    introEvery: computed(() => settings.value.introEvery),
+    paceConfig,
     update,
     reset,
   }

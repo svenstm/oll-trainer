@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { CASES } from '@/core/data/cases'
-import { ARTS_DEFAULTS } from '@/core/arts'
+import { PACE_DEFAULTS } from '@/core/pace'
 import type { NewSolve } from '@/core/types'
 import { resetStorageCache, storageKey, SCHEMA_VERSION } from './persist'
 import { DEFAULT_SETTINGS, useSettingsStore } from './settings'
@@ -130,19 +130,19 @@ describe('settings', () => {
     expect(settings.scrambleSize).toBe(0.8)
   })
 
-  it('keeps tau between eager and gentle', () => {
+  it('keeps the intro interval between eager and gentle', () => {
     const settings = useSettingsStore()
-    settings.update({ tau: 5 })
-    expect(settings.tau).toBe(ARTS_DEFAULTS.tauGentle)
-    settings.update({ tau: -99 })
-    expect(settings.tau).toBe(ARTS_DEFAULTS.tauEager)
+    settings.update({ introEvery: 99 })
+    expect(settings.introEvery).toBe(PACE_DEFAULTS.introGentle)
+    settings.update({ introEvery: 0 })
+    expect(settings.introEvery).toBe(PACE_DEFAULTS.introEager)
   })
 
-  it('feeds tau into the ARTS config it hands out', () => {
+  it('feeds the intro interval into the pace config it hands out', () => {
     const settings = useSettingsStore()
-    settings.update({ tau: -1.0 })
-    expect(settings.artsConfig.tau).toBe(-1.0)
-    expect(settings.artsConfig.c).toBe(ARTS_DEFAULTS.c)
+    settings.update({ introEvery: 5 })
+    expect(settings.paceConfig.introEvery).toBe(5)
+    expect(settings.paceConfig.spreadGate).toBe(PACE_DEFAULTS.spreadGate)
   })
 
   it('resets to defaults', () => {

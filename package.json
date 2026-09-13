@@ -21,7 +21,7 @@
     "data:cases": "tsx scripts/enumerate-cases.ts && prettier --write --experimental-cli src/core/data",
     "data:scrambles": "tsx scripts/generate-scrambles.ts && prettier --write --experimental-cli src/core/data",
     "data:print": "tsx scripts/print-cases.ts",
-    "arts:simulate": "tsx scripts/simulate-arts.ts",
+    "pace:simulate": "tsx scripts/simulate-pace.ts",
     "data:icons": "tsx scripts/generate-icons.ts",
     "verify:offline": "vite build && tsx scripts/verify-offline.ts"
   },

@@ -1,4 +1,4 @@
-/** Practice modes. `learn` is the ARTS-scheduled one. */
+/** Practice modes. `learn` is the pace-scheduled one. */
 export type Mode = 'train' | 'recap' | 'learn'
 
 export const MODES = ['learn', 'train', 'recap'] as const satisfies readonly Mode[]
@@ -115,6 +115,6 @@ export interface Settings {
   scrambleSize: number
   /** Hold-to-ready duration in ms. 0 reproduces the old app's feel. */
   holdMs: number
-  /** ARTS activation threshold. */
-  tau: number
+  /** Trials that may pass before a case still being introduced is served. */
+  introEvery: number
 }

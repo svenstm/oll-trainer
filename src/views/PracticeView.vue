@@ -10,7 +10,14 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import TimerDisplay from '@/components/TimerDisplay.vue'
 import UndoToast from '@/components/UndoToast.vue'
 import { useTimer } from '@/composables/useTimer'
-import { buildModel, learnStatus, pickNext, pickRotation } from '@/core/arts'
+import {
+  buildModel,
+  introEveryFromSlider,
+  learnStatus,
+  pickNext,
+  pickRotation,
+  sliderFromIntroEvery,
+} from '@/core/pace'
 import { applyMoves, SOLVED } from '@/core/cube'
 import { CASES_BY_ID } from '@/core/data/cases'
 import { patternFromCube } from '@/core/pattern'
@@ -45,15 +52,19 @@ const studying = computed(() => revealed.value?.ms === null)
 let recapIndex = -1
 
 /**
- * The ARTS model is a fold over the whole durable history, so it is rebuilt
+ * The pace model is a fold over the whole durable history, so it is rebuilt
  * whenever that history changes rather than on every render.
+ *
+ * It takes no clock reading, so this computed depends only on reactive state.
+ * Its predecessor passed `Date.now()`, which is not reactive: the bars sat
+ * frozen at whatever the clock said when the last solve landed, then jumped.
  */
-const artsModel = computed(() =>
-  props.mode === 'learn' ? buildModel(solves.solves, Date.now(), settings.artsConfig) : null,
+const paceModel = computed(() =>
+  props.mode === 'learn' ? buildModel(solves.solves, settings.paceConfig) : null,
 )
 
 const status = computed(() =>
-  artsModel.value ? learnStatus(artsModel.value, selection.ids, settings.artsConfig) : null,
+  paceModel.value ? learnStatus(paceModel.value, selection.ids, settings.paceConfig) : null,
 )
 
 /** Rendered in two places, because it sits inline on desktop and below on mobile. */
@@ -81,8 +92,8 @@ function chooseCase(): number | null {
     return ids[recapIndex] ?? null
   }
   if (props.mode === 'learn') {
-    const model = buildModel(solves.solves, Date.now(), settings.artsConfig)
-    return pickNext(model, ids, Math.random, settings.artsConfig)
+    const model = buildModel(solves.solves, settings.paceConfig)
+    return pickNext(model, ids, Math.random, settings.paceConfig)
   }
   return ids[Math.floor(Math.random() * ids.length)] ?? null
 }
@@ -382,11 +393,11 @@ watch(
           min="0"
           max="100"
           step="1"
-          :value="Math.round(((settings.tau - -0.4) / (-1.4 - -0.4)) * 100)"
-          data-testid="tau"
+          :value="sliderFromIntroEvery(settings.introEvery)"
+          data-testid="intro-every"
           @input="
             settings.update({
-              tau: -0.4 + (Number(($event.target as HTMLInputElement).value) / 100) * (-1.4 - -0.4),
+              introEvery: introEveryFromSlider(Number(($event.target as HTMLInputElement).value)),
             })
           "
         />
@@ -521,8 +532,8 @@ watch(
       :session-solves="solves.sessionSolves"
       :all-solves="solves.solves"
       :mode="mode"
-      :arts-model="artsModel"
-      :arts-config="settings.artsConfig"
+      :pace-model="paceModel"
+      :pace-config="settings.paceConfig"
       @delete="offerUndo(solves.remove($event))"
     />
 

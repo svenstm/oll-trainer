@@ -8,7 +8,7 @@
  */
 
 import { CASES_BY_ID } from './data/cases'
-import { ARTS_DEFAULTS } from './arts'
+import { PACE_DEFAULTS } from './pace'
 import {
   MODES,
   OUTCOMES,
@@ -103,7 +103,7 @@ export const DEFAULT_SETTINGS: Settings = {
   timerSize: 5,
   scrambleSize: 1.25,
   holdMs: 300,
-  tau: ARTS_DEFAULTS.tau,
+  introEvery: PACE_DEFAULTS.introEvery,
 }
 
 export function parseSettings(raw: unknown): Settings | null {
@@ -126,10 +126,12 @@ export function parseSettings(raw: unknown): Settings | null {
       LIMITS.holdMs.max,
     ),
     // Eager is the *lower* number, so the range runs the other way.
-    tau: clampNumber(
-      asFiniteNumber(raw.tau, DEFAULT_SETTINGS.tau),
-      ARTS_DEFAULTS.tauEager,
-      ARTS_DEFAULTS.tauGentle,
+    introEvery: Math.round(
+      clampNumber(
+        asFiniteNumber(raw.introEvery, DEFAULT_SETTINGS.introEvery),
+        PACE_DEFAULTS.introEager,
+        PACE_DEFAULTS.introGentle,
+      ),
     ),
   }
 }

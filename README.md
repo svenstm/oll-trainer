@@ -14,8 +14,9 @@ Three modes:
 
 - **Train** — random cases from your selection.
 - **Recap** — each selected case in turn.
-- **Learn** — ARTS adaptive scheduling, backed by a durable solve history that
-  survives clearing the session and days away from the app.
+- **Learn** — adaptive scheduling that serves whichever case is furthest off
+  your own par, backed by a durable solve history that survives clearing the
+  session and days away from the app.
 
 In every mode, a case you look at and blank on gets **I don't know** (or `i`)
 rather than a guess. It shows you the algorithm and holds the setup on screen,
@@ -62,7 +63,8 @@ and so runs by hand rather than in CI.
 ### Layout
 
 - `src/core/` — pure TypeScript: cube model, patterns, scrambles, timer
-  reducer, ARTS. No Vue, no DOM, no globals. Tested in the `node` environment.
+  reducer, the scheduler. No Vue, no DOM, no globals. Tested in the `node`
+  environment.
 - `src/stores/` — Pinia stores, `localStorage`-backed.
 - `src/components/`, `src/views/` — the UI. `LandingView` is the public page at
   `/`; `SelectionView` (`/oll-trainer`) and `PracticeView`
@@ -75,8 +77,10 @@ and so runs by hand rather than in CI.
 
 The plan this was built against lives in [`docs/PLAN.md`](docs/PLAN.md), kept
 as written. Where the finished app departs from it, and why, is recorded in
-[`docs/plan-deviations.md`](docs/plan-deviations.md); the scheduler's tuning is
-in [`docs/arts-recalibration.md`](docs/arts-recalibration.md).
+[`docs/plan-deviations.md`](docs/plan-deviations.md). The scheduler is designed
+and measured in [`docs/pace-design.md`](docs/pace-design.md); the
+forgetting-curve model it replaced is in
+[`docs/arts-recalibration.md`](docs/arts-recalibration.md).
 
 ### Regenerating the data
 
@@ -86,7 +90,7 @@ in [`docs/arts-recalibration.md`](docs/arts-recalibration.md).
 pnpm data:cases       # enumerate, bind to the standard numbering, verify, write
 pnpm data:scrambles   # ~20 verified scrambles per case, via cubing
 pnpm data:print       # draw all 57 derived patterns as ASCII, for eyeballing
-pnpm arts:simulate    # synthetic multi-day timelines for scheduler tuning
+pnpm pace:simulate    # acceptance checks for the scheduler, against a simulated learner
 ```
 
 `pnpm data:cases` refuses to write anything unless all 57 hand-entered

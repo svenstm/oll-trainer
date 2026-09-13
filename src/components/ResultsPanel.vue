@@ -5,7 +5,7 @@ import Sparkline from './Sparkline.vue'
 import StrengthBar from './StrengthBar.vue'
 import { CASES_BY_ID } from '@/core/data/cases'
 import { formatMs, mean, statsFor } from '@/core/time'
-import { isAtRisk, strength, type ArtsConfig, type ArtsModel } from '@/core/arts'
+import { barValue, state, type PaceConfig, type PaceModel } from '@/core/pace'
 import type { Mode, Solve } from '@/core/types'
 
 const props = defineProps<{
@@ -14,8 +14,8 @@ const props = defineProps<{
   /** The whole durable history, oldest first. The Cases tab reads this one. */
   allSolves: readonly Solve[]
   mode: Mode
-  artsModel?: ArtsModel | null
-  artsConfig?: ArtsConfig
+  paceModel?: PaceModel | null
+  paceConfig?: PaceConfig
 }>()
 
 const emit = defineEmits<{ delete: [id: string] }>()
@@ -199,9 +199,9 @@ const SUMMARY = [
             </td>
             <td v-if="mode === 'learn'" class="py-1.5 pr-3 text-right">
               <StrengthBar
-                v-if="artsModel"
-                :value="strength(artsModel, row.id, artsConfig)"
-                :at-risk="isAtRisk(artsModel, row.id, artsConfig)"
+                v-if="paceModel"
+                :value="barValue(paceModel, row.id, paceConfig)"
+                :at-risk="state(paceModel, row.id, paceConfig) === 'at-risk'"
               />
             </td>
           </tr>

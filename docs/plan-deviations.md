@@ -3,6 +3,34 @@
 [`PLAN.md`](PLAN.md) is kept as written. This records the places the finished
 app deliberately departs from it, and why.
 
+## ARTS was replaced by a pace model (§7)
+
+Decision 7 specified a faithful port of `arts.js` — ACT-R activation, alpha
+nudged by the response-time gap, `tau` as the forgetting threshold — plus an
+open tuning task to recalibrate its constants for a durable history. The port
+was made and the recalibration done (see
+[`arts-recalibration.md`](arts-recalibration.md)). It was then removed.
+
+Measured against a real 25-solve history, the constants were not the problem:
+
+- The strength bar was a recency countdown. `dt` floors at one second, so every
+  fresh encounter scored exactly 80% whatever the solve time, and a lone
+  encounter fell below `tau` in about ten seconds — less than one solve. Every
+  case in the history read at-risk one hour after the session ended.
+- `compressGap` glued two time scales together badly: a night reads as 2922
+  virtual seconds, so 49 minutes of uninterrupted practice decayed a case as
+  much as eight hours of sleep, and two hours of practice more than a year away.
+
+Neither follows from the constants. Both follow from scoring an overlearned
+motor sequence with a declarative-memory forgetting curve. OLL execution does
+not fade on a scale worth modelling; what varies is recognition, and the signal
+for that is already in the history — how a case performs against your others.
+
+`src/core/pace.ts` replaces it. Design and measurements in
+[`pace-design.md`](pace-design.md). `tau` is gone from settings; the
+gentle↔eager slider §9 asks for now drives the intro interval directly, which
+is the job it was always doing by side effect.
+
 ## Export/import was added (§12 excluded it)
 
 The plan listed import/export as a non-goal, then flagged its absence as the
