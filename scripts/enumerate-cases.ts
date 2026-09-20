@@ -22,6 +22,12 @@ function render(cases: ReturnType<typeof bindCases>): string {
     group: ${JSON.stringify(c.group)},
     pattern: patternFromKey('${patternKey(c.pattern)}'),
     alg: ${JSON.stringify(c.alg)},
+    alternatives: [${c.alternatives
+      .map(
+        (a) =>
+          `\n      { alg: ${JSON.stringify(a.alg)}, source: ${JSON.stringify(a.source)}, quarterTurns: ${a.quarterTurns} },`,
+      )
+      .join('')}${c.alternatives.length > 0 ? '\n    ' : ''}],
   },`,
     )
     .join('\n')
@@ -32,6 +38,12 @@ function render(cases: ReturnType<typeof bindCases>): string {
 // numbers, names and algorithms come from scripts/oll-algorithms.ts. The two
 // are cross-checked against each other before this file is written, and again
 // in src/core/data/data.test.ts.
+//
+// Alternatives are transcribed from other people's sheets in
+// scripts/cube-academy-algorithms.ts. Those sheets carry no OLL numbers, so
+// both the number and the angle below are derived by inverting the algorithm
+// — never transcribed — and one that matches ours is dropped rather than
+// shown twice.
 
 import { patternFromKey } from '../pattern'
 import type { OllCase } from '../types'

@@ -34,22 +34,60 @@ export type OllGroup =
   | 'W-Shapes'
   | 'Corners Correct, Edges Flipped'
 
+/**
+ * Where a non-canonical algorithm came from.
+ *
+ * A table rather than a bare string so the URL lives in the data next to the
+ * name that gets rendered, instead of only in a comment and the README — and
+ * so a second sheet is a new key rather than a new field.
+ */
+export const SOURCES = {
+  'cube-academy': {
+    name: 'Cube Academy',
+    url: 'https://www.cube.academy/oll-algs',
+  },
+} as const
+
+export type SourceKey = keyof typeof SOURCES
+
+/** A second algorithm for a case, from a named sheet. */
+export interface Alternative {
+  alg: string
+  source: SourceKey
+  /**
+   * Quarter turns from the case's stored pattern to the pattern *this*
+   * algorithm is written for.
+   *
+   * Sheets do not agree on which way up to hold a case, and 21 of Cube
+   * Academy's differ from ours. Rewriting the algorithm into our angle would
+   * turn an R/U algorithm into an L/U one and throw away the ergonomics that
+   * made it worth having, so the offset is carried instead and turned into a
+   * cube rotation by `solutionAsDrawn` — the one place that already composes
+   * the angle a case was *served* at.
+   *
+   * Derived by the binder, never hand-entered.
+   */
+  quarterTurns: 0 | 1 | 2 | 3
+}
+
 export interface OllCase {
   /** Standard community numbering, 1..57. */
   id: number
   name: string
   group: OllGroup
   pattern: Pattern
-  /**
-   * Canonical, ergonomic algorithm — what the app teaches.
-   *
-   * docs/PLAN.md §16 also wanted 2-3 generated alternatives "at no extra
-   * cost", which turned out not to hold: the fast solver cannot express an
-   * orientation-only goal, and the optimal one does not finish. Full-cube
-   * solutions *are* valid OLL algorithms but run 12-18 moves, so they would be
-   * worse than this one rather than an alternative to it.
-   */
+  /** Canonical, ergonomic algorithm — what the app teaches. */
   alg: string
+  /**
+   * Other sheets' algorithms for this case, shown beside `alg` but never in
+   * place of it: `alg` remains the one the scheduler measures.
+   *
+   * docs/PLAN.md §16 wanted 2-3 *generated* alternatives, which did not work
+   * out — see docs/plan-deviations.md. These are transcribed instead, and a
+   * case has one only when the sheet's algorithm actually differs from ours,
+   * so an empty list is the normal state for 29 of the 57.
+   */
+  alternatives: readonly Alternative[]
 }
 
 /**

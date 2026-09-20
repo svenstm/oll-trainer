@@ -7,9 +7,11 @@ import {
   isWellFormedPattern,
   patternFromCube,
   patternKey,
+  rotatePattern,
   rotationBetween,
 } from '../pattern'
-import type { OllGroup } from '../types'
+import { normaliseAlg, turnSequence } from '../rotate'
+import { SOURCES, type OllGroup } from '../types'
 import { CASES, CASES_BY_ID } from './cases'
 import { SCRAMBLES } from './scrambles'
 
@@ -106,6 +108,80 @@ describe('cases', () => {
       )
     },
   )
+
+  describe('alternatives', () => {
+    const withAlternatives = CASES.filter((c) => c.alternatives.length > 0)
+
+    // Not a coverage assertion: a sheet that agrees with us about a case
+    // leaves it with none, which is the normal state for roughly half. This
+    // only catches the whole set silently vanishing.
+    it('are attached to some cases', () => {
+      expect(withAlternatives.length).toBeGreaterThan(0)
+    })
+
+    it('name a source that exists', () => {
+      for (const c of CASES) {
+        for (const alternative of c.alternatives) {
+          expect(SOURCES[alternative.source], `OLL ${c.id}`).toBeDefined()
+        }
+      }
+    })
+
+    it('have only well-formed moves', () => {
+      for (const c of CASES) {
+        for (const alternative of c.alternatives) {
+          for (const move of parseMoves(alternative.alg)) {
+            expect(`${move.base}${move.amount === 1 ? '' : move.amount === 2 ? '2' : "'"}`).toMatch(
+              MOVE_PATTERN,
+            )
+          }
+        }
+      }
+    })
+
+    it('are stored in the one spelling the duplicate rule compares by', () => {
+      for (const c of CASES) {
+        for (const alternative of c.alternatives) {
+          expect(alternative.alg, `OLL ${c.id}`).toBe(normaliseAlg(alternative.alg))
+        }
+      }
+    })
+
+    it('solve their case, at the angle they claim', () => {
+      for (const c of CASES) {
+        for (const alternative of c.alternatives) {
+          const cube = applyMoves(SOLVED, invertMoves(alternative.alg))
+          expect(
+            firstTwoLayersSolved(cube),
+            `OLL ${c.id} alternative disturbs the first two layers`,
+          ).toBe(true)
+          // Its own angle, not ours — `quarterTurns` is what squares the two
+          // up, and a wrong one is a line that does not solve what is drawn.
+          expect(
+            patternKey(patternFromCube(cube)),
+            `OLL ${c.id} alternative is not ${alternative.quarterTurns} quarter turns from the case`,
+          ).toBe(patternKey(rotatePattern(c.pattern, alternative.quarterTurns)))
+        }
+      }
+    })
+
+    it('are never the canonical algorithm wearing a different angle', () => {
+      for (const c of CASES) {
+        for (const alternative of c.alternatives) {
+          const ours = normaliseAlg(c.alg)
+          const spellings = [0, 1, 2, 3].map((turns) => turnSequence(ours, turns))
+          expect(spellings, `OLL ${c.id} repeats its own algorithm`).not.toContain(alternative.alg)
+        }
+      }
+    })
+
+    it('are distinct within a case', () => {
+      for (const c of CASES) {
+        const spellings = c.alternatives.map((alternative) => alternative.alg)
+        expect(new Set(spellings).size, `OLL ${c.id}`).toBe(spellings.length)
+      }
+    })
+  })
 
   it('indexes every case by id', () => {
     expect(CASES_BY_ID.size).toBe(57)

@@ -119,8 +119,20 @@ describe('pickScramble', () => {
 describe('solutionAsDrawn', () => {
   it('asks for no rotation when the case is drawn as it is stored', () => {
     for (const c of CASES) {
-      expect(solutionAsDrawn(c, c.pattern)).toEqual({ hold: '', alg: c.alg })
+      const { hold, alg } = solutionAsDrawn(c, c.pattern)
+      expect({ hold, alg }).toEqual({ hold: '', alg: c.alg })
     }
+  })
+
+  it('asks for a rotation on an alternative written for another angle, at any angle', () => {
+    // Sheets do not agree on which way up to hold a case, so an alternative
+    // can need turning even when the picture is the one its case is stored
+    // at and the canonical algorithm needs nothing.
+    const c = CASES.find((entry) => entry.alternatives.some((a) => a.quarterTurns !== 0))!
+    const solution = solutionAsDrawn(c, c.pattern)
+
+    expect(solution.hold).toBe('')
+    expect(solution.alternatives.some((alternative) => alternative.hold !== '')).toBe(true)
   })
 
   it.each(ROTATIONS)('solves every case served at %s, on the cube as scrambled', (rotation) => {
@@ -136,6 +148,33 @@ describe('solutionAsDrawn', () => {
       }
     }
   })
+
+  it.each(ROTATIONS)(
+    'solves every alternative served at %s, on the cube as scrambled',
+    (rotation) => {
+      // The same check the canonical algorithms get, and the only one that
+      // really tests the composition: an alternative carries its own angle, so
+      // getting the arithmetic backwards leaves a line on screen that looks
+      // like a solution and does not solve the cube in the user's hands.
+      let checked = 0
+      for (const c of CASES) {
+        if (c.alternatives.length === 0) continue
+        for (const base of SCRAMBLES[c.id]!) {
+          const scramble = applyRotation(base, rotation)
+          const drawn = patternFromCube(applyMoves(SOLVED, scramble))
+          for (const { hold, alg, source } of solutionAsDrawn(c, drawn).alternatives) {
+            const solved = applyMoves(applyMoves(SOLVED, scramble), `${hold} ${alg}`.trim())
+            expect(
+              patternKey(patternFromCube(solved)),
+              `OLL ${c.id} (${source}) ${rotation}: ${scramble}`,
+            ).toBe(patternKey(SOLVED_PATTERN))
+            checked++
+          }
+        }
+      }
+      expect(checked).toBeGreaterThan(0)
+    },
+  )
 
   it('turns the cube for OLL 42, whose algorithm is written for one angle only', () => {
     const c = CASES.find((entry) => entry.id === 42)!

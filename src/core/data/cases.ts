@@ -4,6 +4,12 @@
 // numbers, names and algorithms come from scripts/oll-algorithms.ts. The two
 // are cross-checked against each other before this file is written, and again
 // in src/core/data/data.test.ts.
+//
+// Alternatives are transcribed from other people's sheets in
+// scripts/cube-academy-algorithms.ts. Those sheets carry no OLL numbers, so
+// both the number and the angle below are derived by inverting the algorithm
+// — never transcribed — and one that matches ours is dropped rather than
+// shown twice.
 
 import { patternFromKey } from '../pattern'
 import type { OllCase } from '../types'
@@ -15,6 +21,7 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010000010111010111'),
     alg: "R U2 R2 F R F' U2 R' F R F'",
+    alternatives: [],
   },
   {
     id: 2,
@@ -22,6 +29,7 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010000011010011111'),
     alg: "F R U R' U' F' f R U R' U' f'",
+    alternatives: [{ alg: "f U R U' R' S' U R U' R' F'", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 3,
@@ -29,6 +37,9 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('000010001110110010011'),
     alg: "f R U R' U' f' U' F R U R' U' F'",
+    alternatives: [
+      { alg: "R' F2 R2 U2 R' F R U2 R2 F2 R", source: 'cube-academy', quarterTurns: 2 },
+    ],
   },
   {
     id: 4,
@@ -36,6 +47,9 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('001010000010011110110'),
     alg: "f R U R' U' f' U F R U R' U' F'",
+    alternatives: [
+      { alg: "R' F2 R2 U2 R' F' R U2 R2 F2 R", source: 'cube-academy', quarterTurns: 0 },
+    ],
   },
   {
     id: 5,
@@ -43,6 +57,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Squares',
     pattern: patternFromKey('000011011110100000011'),
     alg: "r' U2 R U R' U r",
+    alternatives: [],
   },
   {
     id: 6,
@@ -50,6 +65,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Squares',
     pattern: patternFromKey('011011000000001110110'),
     alg: "r U2 R' U' R U' r'",
+    alternatives: [],
   },
   {
     id: 7,
@@ -57,6 +73,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('010110100100110011000'),
     alg: "r U R' U R U2 r'",
+    alternatives: [],
   },
   {
     id: 8,
@@ -64,6 +81,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('100110010011011100000'),
     alg: "r' U' R U' R' U2 r",
+    alternatives: [{ alg: "R' F' r U' r' F2 R", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 9,
@@ -71,6 +89,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('010110001001010110100'),
     alg: "R U R' U' R' F R2 U R' U' F'",
+    alternatives: [],
   },
   {
     id: 10,
@@ -78,6 +97,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('001110010110010001001'),
     alg: "R U R' U R' F R F' R U2 R'",
+    alternatives: [],
   },
   {
     id: 11,
@@ -85,6 +105,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('011110000100010011001'),
     alg: "r U R' U R' F R F' R U2 r'",
+    alternatives: [{ alg: "r' R2 U R' U R U2 R' U M'", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 12,
@@ -92,6 +113,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('110011000001001110010'),
     alg: "M' R' U' R U' R' U2 R U' R r'",
+    alternatives: [{ alg: "r R2 U' R U' R' U2 R U' M", source: 'cube-academy', quarterTurns: 0 }],
   },
   {
     id: 13,
@@ -99,6 +121,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('000111100110100011000'),
     alg: "F U R U' R2 F' R U R U' R'",
+    alternatives: [],
   },
   {
     id: 14,
@@ -106,6 +129,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('000111001011000110100'),
     alg: "R' F R U R' F' R F U' F'",
+    alternatives: [],
   },
   {
     id: 15,
@@ -113,6 +137,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('100111000010100011001'),
     alg: "l' U' l L' U' L U l' U l",
+    alternatives: [{ alg: "R' F' R L' U' L U R' F R", source: 'cube-academy', quarterTurns: 0 }],
   },
   {
     id: 16,
@@ -120,6 +145,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Knight Move Shapes',
     pattern: patternFromKey('001111000010001110100'),
     alg: "r U r' R U R' U' r U' r'",
+    alternatives: [],
   },
   {
     id: 17,
@@ -127,6 +153,7 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('100010001011010010011'),
     alg: "R U R' U R' F R F' U2 R' F R F'",
+    alternatives: [{ alg: "F R' F' R U S' R U' R' S", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 18,
@@ -134,6 +161,9 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('101010000010010111010'),
     alg: "r U R' U R U2 r2 U' R U' R' U2 r",
+    alternatives: [
+      { alg: "r U R' U R U2 r' r' U' R U' R' U2 r", source: 'cube-academy', quarterTurns: 0 },
+    ],
   },
   {
     id: 19,
@@ -141,6 +171,7 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('101010000010011010011'),
     alg: "r' R U R U R' U' M' R' F R F'",
+    alternatives: [{ alg: "S' R U R' S U' R' F R F'", source: 'cube-academy', quarterTurns: 1 }],
   },
   {
     id: 20,
@@ -148,6 +179,7 @@ export const CASES: readonly OllCase[] = [
     group: 'No Edges Flipped Correctly',
     pattern: patternFromKey('101010101010010010010'),
     alg: "r U R' U' M2 U R U' R' U' M'",
+    alternatives: [{ alg: "S R' U' R U R U R U' R' S'", source: 'cube-academy', quarterTurns: 0 }],
   },
   {
     id: 21,
@@ -155,6 +187,7 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111010101000101000'),
     alg: "R U2 R' U' R U R' U' R U' R'",
+    alternatives: [{ alg: "R U R' U R U' R' U R U2 R'", source: 'cube-academy', quarterTurns: 1 }],
   },
   {
     id: 22,
@@ -162,6 +195,7 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111010001000001101'),
     alg: "R U2 R2 U' R2 U' R2 U2 R",
+    alternatives: [],
   },
   {
     id: 23,
@@ -169,6 +203,7 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('111111010000000101000'),
     alg: "R2 D R' U2 R D' R' U2 R'",
+    alternatives: [],
   },
   {
     id: 24,
@@ -176,6 +211,7 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('011111011100000100000'),
     alg: "r U R' U' r' F R F'",
+    alternatives: [{ alg: "R U R D R' U' R D' R2", source: 'cube-academy', quarterTurns: 1 }],
   },
   {
     id: 25,
@@ -183,6 +219,7 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('011111110000000001100'),
     alg: "F' r U R' U' r' F R",
+    alternatives: [{ alg: "R2 D' R U' R' D R U R", source: 'cube-academy', quarterTurns: 1 }],
   },
   {
     id: 26,
@@ -190,6 +227,7 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('011111010000001100100'),
     alg: "R U2 R' U' R U' R'",
+    alternatives: [],
   },
   {
     id: 27,
@@ -197,6 +235,7 @@ export const CASES: readonly OllCase[] = [
     group: 'All Edges Oriented Correctly',
     pattern: patternFromKey('010111110100100001000'),
     alg: "R U R' U R U2 R'",
+    alternatives: [],
   },
   {
     id: 28,
@@ -204,6 +243,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Corners Correct, Edges Flipped',
     pattern: patternFromKey('111110101000010010000'),
     alg: "r U R' U' M U R U' R'",
+    alternatives: [],
   },
   {
     id: 29,
@@ -211,6 +251,9 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('011110001100010110000'),
     alg: "R U R' U' R U' R' F' U' F R U R'",
+    alternatives: [
+      { alg: "r2 D' r U r' D r2 U' r' U' r", source: 'cube-academy', quarterTurns: 3 },
+    ],
   },
   {
     id: 30,
@@ -218,6 +261,9 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('010110101000110010100'),
     alg: "F R' F R2 U' R' U' R U R' F2",
+    alternatives: [
+      { alg: "F U R U2 R' U' R U2 R' U' F'", source: 'cube-academy', quarterTurns: 0 },
+    ],
   },
   {
     id: 31,
@@ -225,6 +271,7 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('011011001100000110010'),
     alg: "R' U' F U R U' R' F' R",
+    alternatives: [],
   },
   {
     id: 32,
@@ -232,6 +279,7 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('110110100001010011000'),
     alg: "L U F' U' L' U L F L'",
+    alternatives: [{ alg: "S R U R' U' R' F R f'", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 33,
@@ -239,6 +287,7 @@ export const CASES: readonly OllCase[] = [
     group: 'T-Shapes',
     pattern: patternFromKey('001111001110000110000'),
     alg: "R U R' U' R' F R F'",
+    alternatives: [],
   },
   {
     id: 34,
@@ -246,6 +295,7 @@ export const CASES: readonly OllCase[] = [
     group: 'C-Shapes',
     pattern: patternFromKey('000111101010100010100'),
     alg: "R U R2 U' R' F R U R U' F'",
+    alternatives: [{ alg: "f R f' U' r' U' R U M'", source: 'cube-academy', quarterTurns: 3 }],
   },
   {
     id: 35,
@@ -253,6 +303,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('100011011010100100010'),
     alg: "R U2 R2 F R F' R U2 R'",
+    alternatives: [],
   },
   {
     id: 36,
@@ -260,6 +311,9 @@ export const CASES: readonly OllCase[] = [
     group: 'W-Shapes',
     pattern: patternFromKey('110011001001000010011'),
     alg: "L' U' L U' L' U L U L F' L' F",
+    alternatives: [
+      { alg: "L' U' L U' L' U L U r U' r' F", source: 'cube-academy', quarterTurns: 0 },
+    ],
   },
   {
     id: 37,
@@ -267,6 +321,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Fish-Shapes',
     pattern: patternFromKey('110110001000110110000'),
     alg: "F R' F' R U R U' R'",
+    alternatives: [],
   },
   {
     id: 38,
@@ -274,6 +329,7 @@ export const CASES: readonly OllCase[] = [
     group: 'W-Shapes',
     pattern: patternFromKey('011110100100011010000'),
     alg: "R U R' U R U' R' U' R' F R F'",
+    alternatives: [],
   },
   {
     id: 39,
@@ -281,6 +337,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('001111100110001010000'),
     alg: "L F' L' U' L U F U' L'",
+    alternatives: [{ alg: "f' r U r' U' r' F r S", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 40,
@@ -288,6 +345,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Lightning Bolts',
     pattern: patternFromKey('100111001011000010001'),
     alg: "R' F R U R' U' F' U R",
+    alternatives: [{ alg: "f R' F' R U R U' R' S'", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 41,
@@ -295,6 +353,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('010110101101010010000'),
     alg: "R U R' U R U2 R' F R U R' U' F'",
+    alternatives: [],
   },
   {
     id: 42,
@@ -302,6 +361,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Awkward Shapes',
     pattern: patternFromKey('101110010010010101000'),
     alg: "R' U' R U' R' U2 R F R U R' U' F'",
+    alternatives: [{ alg: "R' U' F2 u' R U R' D R2 B y", source: 'cube-academy', quarterTurns: 1 }],
   },
   {
     id: 43,
@@ -309,6 +369,7 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('011011001000000010111'),
     alg: "F' U' L' U L F",
+    alternatives: [],
   },
   {
     id: 44,
@@ -316,6 +377,7 @@ export const CASES: readonly OllCase[] = [
     group: 'P-Shapes',
     pattern: patternFromKey('110110100000111010000'),
     alg: "F U R U' R' F'",
+    alternatives: [],
   },
   {
     id: 45,
@@ -323,6 +385,7 @@ export const CASES: readonly OllCase[] = [
     group: 'T-Shapes',
     pattern: patternFromKey('001111001010000010101'),
     alg: "F R U R' U' F'",
+    alternatives: [],
   },
   {
     id: 46,
@@ -330,6 +393,7 @@ export const CASES: readonly OllCase[] = [
     group: 'C-Shapes',
     pattern: patternFromKey('110010110000111000010'),
     alg: "R' U' R' F R F' U R",
+    alternatives: [],
   },
   {
     id: 47,
@@ -337,6 +401,9 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('010011000100101110010'),
     alg: "F' L' U' L U L' U' L U F",
+    alternatives: [
+      { alg: "F R' F' R U2 R U' R' U R U2 R'", source: 'cube-academy', quarterTurns: 3 },
+    ],
   },
   {
     id: 48,
@@ -344,6 +411,7 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('010110000001010011101'),
     alg: "F R U R' U' R U R' U' F'",
+    alternatives: [],
   },
   {
     id: 49,
@@ -351,6 +419,7 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('010011000001000011111'),
     alg: "r U' r2 U r2 U r2 U' r",
+    alternatives: [],
   },
   {
     id: 50,
@@ -358,6 +427,7 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('000011010011000001111'),
     alg: "r' U r2 U' r2 U' r2 U r'",
+    alternatives: [],
   },
   {
     id: 51,
@@ -365,6 +435,7 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('000111000011000011101'),
     alg: "f R U R' U' R U R' U' f'",
+    alternatives: [{ alg: "F U R U' R' U R U' R' F'", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 52,
@@ -372,6 +443,7 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('010010010100111100010'),
     alg: "R U R' U R U' B U' B' R'",
+    alternatives: [{ alg: "R' F' U' F U' R U R' U R", source: 'cube-academy', quarterTurns: 2 }],
   },
   {
     id: 53,
@@ -379,6 +451,9 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('010011000101000111010'),
     alg: "l' U2 L U L' U' L U L' U l",
+    alternatives: [
+      { alg: "r' U' R U' R' U R U' R' U2 r", source: 'cube-academy', quarterTurns: 1 },
+    ],
   },
   {
     id: 54,
@@ -386,6 +461,7 @@ export const CASES: readonly OllCase[] = [
     group: 'L-Shapes',
     pattern: patternFromKey('010110000101010111000'),
     alg: "r U2 R' U' R U R' U' R U' r'",
+    alternatives: [{ alg: "r U R' U R U' R' U R U2 r'", source: 'cube-academy', quarterTurns: 1 }],
   },
   {
     id: 55,
@@ -393,6 +469,9 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('010010010000111000111'),
     alg: "R U2 R2 U' R U' R' U2 F R F'",
+    alternatives: [
+      { alg: "R' F R U R U' R2 F' R2 U' R' U R U R'", source: 'cube-academy', quarterTurns: 1 },
+    ],
   },
   {
     id: 56,
@@ -400,6 +479,7 @@ export const CASES: readonly OllCase[] = [
     group: 'I-Shapes',
     pattern: patternFromKey('000111000010101010101'),
     alg: "r U r' U R U' R' U R U' R' r U' r'",
+    alternatives: [],
   },
   {
     id: 57,
@@ -407,6 +487,7 @@ export const CASES: readonly OllCase[] = [
     group: 'Corners Correct, Edges Flipped',
     pattern: patternFromKey('101111101010000010000'),
     alg: "R U R' U' M' U R U' r'",
+    alternatives: [],
   },
 ]
 

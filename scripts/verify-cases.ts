@@ -1,9 +1,14 @@
 /**
- * Binds the hand-entered algorithm table to the combinatorial enumeration.
+ * Binds the hand-entered algorithm tables to the combinatorial enumeration.
  *
  * Every check here exists to make a typo in `oll-algorithms.ts` fail loudly
  * instead of shipping a case that shows the wrong picture. Weakening any of
  * them to land data faster defeats the point of generating the data at all.
+ *
+ * `cube-academy-algorithms.ts` is bound the same way and held to the same
+ * standard. It gets no numbers of its own — they are derived here — so the
+ * second table adds no second place a case can be mis-numbered, which is the
+ * objection `docs/plan-deviations.md` raised against having one at all.
  */
 
 import { applyMoves, invertMoves, SOLVED, type Cube } from '../src/core/cube'
@@ -14,8 +19,11 @@ import {
   isWellFormedPattern,
   patternFromCube,
   patternKey,
+  rotationBetween,
 } from '../src/core/pattern'
-import type { OllGroup, Pattern } from '../src/core/types'
+import { normaliseAlg, turnSequence } from '../src/core/rotate'
+import { SOURCES, type Alternative, type OllGroup, type Pattern } from '../src/core/types'
+import { CUBE_ACADEMY_ALGORITHMS, type CubeAcademyEntry } from './cube-academy-algorithms'
 import { OLL_ALGORITHMS, type AlgorithmEntry } from './oll-algorithms'
 
 /** Group sizes, from the plan. They sum to 57. */
@@ -84,6 +92,30 @@ const OCLL_ORIENTED_CORNERS: Readonly<Record<number, number>> = {
 
 export interface BoundCase extends AlgorithmEntry {
   pattern: Pattern
+  alternatives: Alternative[]
+}
+
+/**
+ * Whether a sheet's algorithm is one this project already teaches.
+ *
+ * Two lines, no more. An exact match after normalising catches the half of
+ * Cube Academy's sheet that agrees with ours down to the move. The rotations
+ * catch the one that is our algorithm written from another angle — OLL 43,
+ * where ours reads `F' U' L' U L F` and theirs reads `R' U' F' U F R`.
+ *
+ * It deliberately stops short of "has the same effect on the cube". Twelve
+ * more entries would match that test, and they are not duplicates: OLL 34's
+ * `f R f' U' r' U' R U M'` permutes the cube exactly as our eleven-move
+ * algorithm does, in nine moves. Dropping it would throw away the best reason
+ * to read another sheet in the first place.
+ */
+function isOurAlgorithm(ours: string, theirs: string): boolean {
+  const mine = normaliseAlg(ours)
+  const yours = normaliseAlg(theirs)
+  for (let turns = 0; turns < 4; turns++) {
+    if (turnSequence(mine, turns) === yours) return true
+  }
+  return false
 }
 
 export class VerificationError extends Error {}
@@ -183,7 +215,7 @@ export function bindCases(entries: readonly AlgorithmEntry[] = OLL_ALGORITHMS): 
     // arbitrary artefact of sorting keys, and for 42 of the 57 cases it is not
     // the angle the algorithm is written for — so drawing it would show a
     // picture the algorithm beside it does not solve.
-    bound.push({ ...entry, pattern })
+    bound.push({ ...entry, pattern, alternatives: [] })
   }
 
   // Two cases are the same class when their patterns agree up to a rotation,
@@ -213,6 +245,102 @@ export function bindCases(entries: readonly AlgorithmEntry[] = OLL_ALGORITHMS): 
     problems.push(`${missing.length} enumerated classes have no algorithm: ${missing.join(', ')}`)
   }
 
+  // Only once the canonical table is sound. An alternative is placed by
+  // matching the class its own inverse produces, so every alternative for a
+  // case whose canonical algorithm is wrong would report a second, derived
+  // failure — noise on top of the one problem actually worth fixing.
+  if (problems.length === 0) {
+    bindAlternatives(bound, CUBE_ACADEMY_ALGORITHMS, 'cube-academy', problems)
+  }
+
   if (problems.length > 0) fail(problems)
   return bound.sort((a, b) => a.id - b.id)
+}
+
+/**
+ * Attaches one sheet's algorithms to the cases they solve.
+ *
+ * The sheet carries no OLL numbers — Cube Academy's does not, and no sheet has
+ * to — so the number is derived here exactly as the canonical table's is:
+ * invert the algorithm, read off the pattern, find the class. A transcription
+ * error therefore cannot quietly land on the wrong case. It either matches no
+ * class, or collides with one already claimed, and nothing is written.
+ *
+ * Absence is not an error. A sheet that agrees with us about a case leaves
+ * that case with no alternative, which is the normal state for roughly half
+ * of them.
+ */
+function bindAlternatives(
+  bound: readonly BoundCase[],
+  entries: readonly CubeAcademyEntry[],
+  source: keyof typeof SOURCES,
+  problems: string[],
+): void {
+  const byCanonicalKey = new Map(bound.map((c) => [patternKey(canonicalPattern(c.pattern)), c]))
+  const claimed = new Map<number, string>()
+  const label = SOURCES[source].name
+
+  for (const entry of entries) {
+    const where = `${label} ${entry.section} "${entry.alg}"`
+    const alg = normaliseAlg(entry.alg)
+
+    let cube: Cube
+    try {
+      cube = applyMoves(SOLVED, invertMoves(alg))
+    } catch (error) {
+      problems.push(`${where}: ${(error as Error).message}`)
+      continue
+    }
+
+    const stray = UNTOUCHED_FACELETS.filter((i) => cube[i] !== SOLVED[i])
+    if (stray.length > 0) {
+      // Usually a net cube rotation the sheet left implicit, which a trailing
+      // x/y/z in the table makes explicit. Occasionally a real typo.
+      problems.push(`${where}: disturbs ${stray.length} facelets outside the last layer`)
+      continue
+    }
+
+    const pattern = patternFromCube(cube)
+    if (!isWellFormedPattern(pattern)) {
+      problems.push(`${where}: pattern is not 9-of-21 oriented`)
+      continue
+    }
+
+    const target = byCanonicalKey.get(patternKey(canonicalPattern(pattern)))
+    if (!target) {
+      problems.push(`${where}: solves no enumerated OLL class`)
+      continue
+    }
+
+    const already = claimed.get(target.id)
+    if (already !== undefined) {
+      problems.push(`${where}: OLL ${target.id} is already taken by ${label} "${already}"`)
+      continue
+    }
+    claimed.set(target.id, entry.alg)
+
+    if (isOurAlgorithm(target.alg, alg)) continue
+
+    // Non-null: `target` was found by this pattern's own canonical key, so the
+    // two are rotations of each other by construction.
+    const quarterTurns = rotationBetween(target.pattern, pattern)!
+    target.alternatives.push({ alg, source, quarterTurns: quarterTurns as 0 | 1 | 2 | 3 })
+  }
+
+  // Guards the filter above rather than the data: if `isOurAlgorithm` ever
+  // stops recognising one of ours, the reveal grows a second line saying the
+  // same thing twice, which no other check here would notice.
+  for (const c of bound) {
+    for (const alternative of c.alternatives) {
+      if (isOurAlgorithm(c.alg, alternative.alg)) {
+        problems.push(
+          `OLL ${c.id} (${c.name}): alternative "${alternative.alg}" is our own algorithm`,
+        )
+      }
+    }
+    const spellings = c.alternatives.map((a) => normaliseAlg(a.alg))
+    if (new Set(spellings).size !== spellings.length) {
+      problems.push(`OLL ${c.id} (${c.name}): two alternatives are the same algorithm`)
+    }
+  }
 }
