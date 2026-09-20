@@ -43,7 +43,7 @@ Import merges by solve id rather than replacing, which makes it safe in all
 three situations that matter — restoring onto an empty profile, re-importing
 the same file, and merging two devices.
 
-## Generated alternative algorithms were dropped (§16)
+## Alternative algorithms are transcribed, not generated (§16)
 
 Decision 16 wanted 2–3 generated alternatives per case, "at no extra cost"
 because the scramble generator was already running a search. That premise did
@@ -59,14 +59,49 @@ Full-cube solutions _are_ valid OLL algorithms for their case: whether a
 sequence orients a state depends only on the orientation vector, not on the
 permutation. But they run 12–18 moves against a canonical algorithm's 8–11, so
 they would be worse than the algorithm they sat beside, not an alternative to
-it.
+it. Building an OLL solver — IDA\* over the cube group with a pruning table —
+would have cost more than the rest of phase 2 together.
 
-Building an OLL solver — IDA* over the cube group with a pruning table — would
-have cost more than the rest of phase 2 together. The `alternatives` field was
-removed rather than left permanently empty. Re-adding it, if ever wanted, means
-either that solver or a second hand-entered algorithm per case; the latter
-doubles the one table the plan calls the single place a human typo can enter
-the pipeline.
+The field was removed, and the note left here said re-adding it meant either
+that solver or a second hand-entered algorithm per case — the latter dismissed
+because it "doubles the one table the plan calls the single place a human typo
+can enter the pipeline". The second route was taken, and that objection turns
+out not to bite, because the second table is not hand-numbered.
+
+[Cube Academy's sheet](https://www.cube.academy/oll-algs) is transcribed into
+`scripts/cube-academy-algorithms.ts` in the page's own order, with its own
+section headings and **no OLL numbers** — the page carries none. `bindCases`
+derives each number the way the canonical table's numbers are _checked_: it
+inverts the algorithm and reads off the pattern. A mistyped entry therefore
+cannot land quietly on the wrong case. It matches no enumerated class, or
+collides with one already claimed, and `pnpm data:cases` refuses to write. The
+second table adds algorithms; it does not add a second place a case can be
+mis-numbered.
+
+Two things fall out of using someone else's sheet rather than a solver:
+
+- **Angles disagree.** A case is stored in the orientation its own algorithm
+  is written for, and 21 of Cube Academy's are written for a different one.
+  Rewriting them into ours would turn an R/U algorithm into an L/U one and
+  throw away the ergonomics that made another sheet worth reading, so each
+  alternative carries a `quarterTurns` offset and `solutionAsDrawn` composes
+  it with the angle the case was served at.
+- **Half the sheet is already ours.** 28 of the 57 are the algorithm this
+  project teaches; one more is that algorithm written from another angle. They
+  are transcribed anyway, so the file stays a faithful copy, and dropped by
+  the binder. 28 cases end up with an alternative and 29 with none, so an
+  empty list is normal — unlike the canonical table, coverage is not asserted.
+
+The duplicate rule stops at "our algorithm, possibly turned". Twelve more
+entries have the same net effect on the cube and are _not_ duplicates: OLL
+34's `f R f' U' r' U' R U M'` permutes the cube exactly as our eleven-move
+algorithm does, in nine moves. Dropping those would discard the best reason to
+read another sheet at all.
+
+The conjugation table moved from `src/core/scramble.ts` to
+`src/core/rotate.ts` to make this work. The binder needs it to tell a new
+algorithm from one of ours written sideways, and `scramble.ts` imports the
+generated case data — a generator reaching for its own previous output.
 
 ## A browser-driven offline check was added (§10, phase 1)
 

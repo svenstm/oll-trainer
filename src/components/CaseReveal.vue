@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import OllFace from './OllFace.vue'
 import { solutionAsDrawn } from '@/core/scramble'
 import { formatMs } from '@/core/time'
-import type { OllCase, Pattern } from '@/core/types'
+import { SOURCES, type OllCase, type Pattern } from '@/core/types'
 
 const props = defineProps<{
   ollCase: OllCase
@@ -23,6 +23,10 @@ const props = defineProps<{
  * the angle drawn beside it. Without that rotation the two halves of this
  * panel disagree, and in study mode the user runs the algorithm against a cube
  * it does not solve.
+ *
+ * Other sheets' algorithms come back from the same call, already squared up to
+ * the same picture — they are written for their own angle, which is usually
+ * not ours.
  */
 const solution = computed(() => solutionAsDrawn(props.ollCase, props.pattern))
 </script>
@@ -56,6 +60,30 @@ const solution = computed(() => solutionAsDrawn(props.ollCase, props.pattern))
           solution.hold + ' '
         }}</span
         >{{ solution.alg }}
+      </p>
+
+      <!--
+        Muted and named, so it reads as someone else's answer rather than a
+        second thing to learn: `alg` above is the one the scheduler measures.
+        A name and no link — PLAN §17 kept other people's sites out of this
+        app, and a link inside the panel would be a navigation control in the
+        one place the user is mid-solve. The URL is in SOURCES and the README.
+      -->
+      <p
+        v-for="alternative in solution.alternatives"
+        :key="alternative.source"
+        class="mt-1 text-sm text-muted"
+        data-testid="alternative"
+      >
+        <span class="mr-2 text-xs" data-testid="alternative-source">{{
+          SOURCES[alternative.source].name
+        }}</span>
+        <span class="font-mono" data-testid="alternative-alg"
+          ><span v-if="alternative.hold" data-testid="alternative-hold">{{
+            alternative.hold + ' '
+          }}</span
+          >{{ alternative.alg }}</span
+        >
       </p>
     </div>
   </section>

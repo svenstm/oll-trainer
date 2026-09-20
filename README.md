@@ -31,6 +31,10 @@ independent rewrite: none of its code, scramble data, or images are used here.
 The case data in `src/core/data/` is generated from first principles by the
 scripts in `scripts/`.
 
+Where a case shows a second algorithm, it is from **Cube Academy**'s sheet
+(<https://www.cube.academy/oll-algs>), credited on screen beside it. The
+canonical algorithm above it is still the one the app teaches and times.
+
 ## Your data
 
 Solves are stored in your browser and nowhere else — there is no account and
@@ -95,7 +99,10 @@ pnpm pace:simulate    # acceptance checks for the scheduler, against a simulated
 
 `pnpm data:cases` refuses to write anything unless all 57 hand-entered
 algorithms bind to exactly the 57 independently enumerated orientation
-classes.
+classes. Other people's sheets are held to the same standard, and are not
+numbered by hand: the OLL number and the angle each of their algorithms is
+written for are both derived by inverting it, so a mistyped algorithm fails
+the bind rather than landing on the wrong case.
 
 ## Licence
 

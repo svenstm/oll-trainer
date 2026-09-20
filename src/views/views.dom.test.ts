@@ -10,7 +10,7 @@ import SelectionView from './SelectionView.vue'
 import OllFace from '@/components/OllFace.vue'
 import ResultsPanel from '@/components/ResultsPanel.vue'
 import { applyMoves, SOLVED } from '@/core/cube'
-import { CASES_BY_ID } from '@/core/data/cases'
+import { CASES, CASES_BY_ID } from '@/core/data/cases'
 import { GROUPED_CASES } from '@/core/groups'
 import { canonicalPattern, patternFromCube, patternKey, SOLVED_PATTERN } from '@/core/pattern'
 import { routes } from '@/router/routes'
@@ -18,7 +18,7 @@ import { resetStorageCache } from '@/stores/persist'
 import { useSelectionStore } from '@/stores/selection'
 import { useSettingsStore } from '@/stores/settings'
 import { useSolvesStore } from '@/stores/solves'
-import type { Mode, Solve } from '@/core/types'
+import { SOURCES, type Mode, type Solve } from '@/core/types'
 
 let pinia: Pinia
 let router: Router
@@ -584,6 +584,50 @@ describe('the case reveal', () => {
         patternKey(SOLVED_PATTERN),
       )
     }
+  })
+
+  it("shows another sheet's algorithm, which also solves the cube that was served", async () => {
+    const c = CASES.find((entry) => entry.alternatives.length > 0)!
+    useSelectionStore().set([c.id])
+    const wrapper = await mountPractice('train')
+
+    const holds = new Set<string>()
+    for (let i = 0; i < 8; i++) {
+      const scramble = wrapper.get('[data-testid="scramble"]').text()
+      await doSolve()
+
+      const lines = wrapper.findAll('[data-testid="alternative"]')
+      expect(lines).toHaveLength(c.alternatives.length)
+      for (const [n, line] of lines.entries()) {
+        expect(line.get('[data-testid="alternative-source"]').text()).toBe(
+          SOURCES[c.alternatives[n]!.source].name,
+        )
+        // Includes the rotation, which is nested inside: what is on screen has
+        // to be runnable straight off the screen.
+        const alg = line.get('[data-testid="alternative-alg"]').text()
+        const solved = applyMoves(applyMoves(SOLVED, scramble), alg)
+        expect(patternKey(patternFromCube(solved)), `${scramble} then ${alg}`).toBe(
+          patternKey(SOLVED_PATTERN),
+        )
+        const hold = line.findAll('[data-testid="alternative-hold"]')
+        holds.add(hold.length > 0 ? hold[0]!.text() : '')
+      }
+    }
+    // Served at four angles, and written for an angle of its own, so the
+    // rotation it asks for really does move around.
+    expect(holds.size).toBeGreaterThan(1)
+  })
+
+  it('shows no second line for a case the sheets agree on', async () => {
+    // OLL 27 is Sune, and Cube Academy writes it exactly as we do.
+    expect(CASES_BY_ID.get(27)!.alternatives).toHaveLength(0)
+    const wrapper = await mountPractice('train')
+    await doSolve()
+
+    // `get` throws if the panel is not there, so reaching the next line at
+    // all says the reveal rendered and simply had nothing extra to show.
+    wrapper.get('[data-testid="case-reveal"]')
+    expect(wrapper.findAll('[data-testid="alternative"]')).toHaveLength(0)
   })
 })
 
