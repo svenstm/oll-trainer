@@ -6,11 +6,10 @@ import {
   patternKey,
   rotatePattern,
   rotationBetween,
-  SOLVED_PATTERN,
 } from './pattern'
 import { CASES } from './data/cases'
 import { SCRAMBLES } from './data/scrambles'
-import { applyRotation, pickScramble, ROTATIONS, scramblesFor, solutionAsDrawn } from './scramble'
+import { applyRotation, pickScramble, ROTATIONS, scramblesFor } from './scramble'
 import type { Rotation } from './types'
 
 const QUARTERS: Readonly<Record<Rotation, number>> = { '': 0, y: 1, y2: 2, "y'": 3 }
@@ -113,79 +112,5 @@ describe('pickScramble', () => {
 
   it('refuses an unknown case rather than serving a wrong scramble', () => {
     expect(() => pickScramble(999)).toThrow(/No scrambles/)
-  })
-})
-
-describe('solutionAsDrawn', () => {
-  it('asks for no rotation when the case is drawn as it is stored', () => {
-    for (const c of CASES) {
-      const { hold, alg } = solutionAsDrawn(c, c.pattern)
-      expect({ hold, alg }).toEqual({ hold: '', alg: c.alg })
-    }
-  })
-
-  it('asks for a rotation on an alternative written for another angle, at any angle', () => {
-    // Sheets do not agree on which way up to hold a case, so an alternative
-    // can need turning even when the picture is the one its case is stored
-    // at and the canonical algorithm needs nothing.
-    const c = CASES.find((entry) => entry.alternatives.some((a) => a.quarterTurns !== 0))!
-    const solution = solutionAsDrawn(c, c.pattern)
-
-    expect(solution.hold).toBe('')
-    expect(solution.alternatives.some((alternative) => alternative.hold !== '')).toBe(true)
-  })
-
-  it.each(ROTATIONS)('solves every case served at %s, on the cube as scrambled', (rotation) => {
-    for (const c of CASES) {
-      for (const base of SCRAMBLES[c.id]!) {
-        const scramble = applyRotation(base, rotation)
-        const drawn = patternFromCube(applyMoves(SOLVED, scramble))
-        const { hold, alg } = solutionAsDrawn(c, drawn)
-        const solved = applyMoves(applyMoves(SOLVED, scramble), `${hold} ${alg}`.trim())
-        expect(patternKey(patternFromCube(solved)), `OLL ${c.id} ${rotation}: ${scramble}`).toBe(
-          patternKey(SOLVED_PATTERN),
-        )
-      }
-    }
-  })
-
-  it.each(ROTATIONS)(
-    'solves every alternative served at %s, on the cube as scrambled',
-    (rotation) => {
-      // The same check the canonical algorithms get, and the only one that
-      // really tests the composition: an alternative carries its own angle, so
-      // getting the arithmetic backwards leaves a line on screen that looks
-      // like a solution and does not solve the cube in the user's hands.
-      let checked = 0
-      for (const c of CASES) {
-        if (c.alternatives.length === 0) continue
-        for (const base of SCRAMBLES[c.id]!) {
-          const scramble = applyRotation(base, rotation)
-          const drawn = patternFromCube(applyMoves(SOLVED, scramble))
-          for (const { hold, alg, source } of solutionAsDrawn(c, drawn).alternatives) {
-            const solved = applyMoves(applyMoves(SOLVED, scramble), `${hold} ${alg}`.trim())
-            expect(
-              patternKey(patternFromCube(solved)),
-              `OLL ${c.id} (${source}) ${rotation}: ${scramble}`,
-            ).toBe(patternKey(SOLVED_PATTERN))
-            checked++
-          }
-        }
-      }
-      expect(checked).toBeGreaterThan(0)
-    },
-  )
-
-  it('turns the cube for OLL 42, whose algorithm is written for one angle only', () => {
-    const c = CASES.find((entry) => entry.id === 42)!
-    const scramble = applyRotation(SCRAMBLES[42]![0]!, 'y')
-    const drawn = patternFromCube(applyMoves(SOLVED, scramble))
-
-    expect(solutionAsDrawn(c, drawn).hold).toBe("y'")
-    // The bare algorithm really does not solve what is on screen — which is
-    // what showing it without the rotation used to do.
-    expect(patternKey(patternFromCube(applyMoves(applyMoves(SOLVED, scramble), c.alg)))).not.toBe(
-      patternKey(SOLVED_PATTERN),
-    )
   })
 })

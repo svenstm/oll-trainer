@@ -9,8 +9,9 @@ import {
   patternKey,
   rotatePattern,
   rotationBetween,
+  SOLVED_PATTERN,
 } from '../pattern'
-import { normaliseAlg, turnSequence } from '../rotate'
+import { normaliseAlg, ROTATIONS, turnSequence } from '../rotate'
 import { SOURCES, type OllGroup } from '../types'
 import { CASES, CASES_BY_ID } from './cases'
 import { SCRAMBLES } from './scrambles'
@@ -171,6 +172,24 @@ describe('cases', () => {
           const ours = normaliseAlg(c.alg)
           const spellings = [0, 1, 2, 3].map((turns) => turnSequence(ours, turns))
           expect(spellings, `OLL ${c.id} repeats its own algorithm`).not.toContain(alternative.alg)
+        }
+      }
+    })
+
+    it('are reached from the case by the turn the reveal names', () => {
+      // The reveal draws the alternative's own picture and labels it
+      // `ROTATIONS[quarterTurns]` for screen readers. That label is a claim
+      // about the cube, so it is checked against the cube: set the case up at
+      // its own angle, make that turn, run the sheet's algorithm, end solved.
+      for (const c of CASES) {
+        for (const alternative of c.alternatives) {
+          const setUp = applyMoves(SOLVED, invertMoves(c.alg))
+          const turn = ROTATIONS[alternative.quarterTurns]!
+          const solved = applyMoves(setUp, `${turn} ${alternative.alg}`.trim())
+          expect(
+            patternKey(patternFromCube(solved)),
+            `OLL ${c.id}: "${turn}" does not set up ${alternative.alg}`,
+          ).toBe(patternKey(SOLVED_PATTERN))
         }
       }
     })

@@ -84,8 +84,8 @@ Two things fall out of using someone else's sheet rather than a solver:
   is written for, and 21 of Cube Academy's are written for a different one.
   Rewriting them into ours would turn an R/U algorithm into an L/U one and
   throw away the ergonomics that made another sheet worth reading, so each
-  alternative carries a `quarterTurns` offset and `solutionAsDrawn` composes
-  it with the angle the case was served at.
+  alternative carries a `quarterTurns` offset, and the reveal draws a second
+  picture of the case turned by it — see below.
 - **Half the sheet is already ours.** 28 of the 57 are the algorithm this
   project teaches; one more is that algorithm written from another angle. They
   are transcribed anyway, so the file stays a faithful copy, and dropped by
@@ -188,20 +188,39 @@ an `outcome` was necessarily timed. Writing v2 is what matters: an older build
 reads the version, refuses the file and says so, instead of quietly taking every
 blank in it for an ordinary solve.
 
-## The reveal names the angle it is drawn at (§9)
+## The reveal draws the angle its algorithm is written for (§9)
 
-§9 has `CaseReveal` show "the canonical alg", and it does — but the face beside
-it is the orientation that was actually served, which is one of four angles.
-On three of them the algorithm as written does not solve the cube in the user's
-hands, and study mode exists precisely so that algorithm can be run against
-that cube. So the line is now the cube rotation that squares the served angle
-up with the algorithm, followed by the algorithm itself, unchanged: `y2 R' U' R
-U' R' U2 R F R U R' U' F'`. Rewriting the algorithm into its conjugate would
-have been equally correct and unrecognisable — the whole point is to teach the
-one sequence.
+§9 has `CaseReveal` show "the canonical alg", and it does. What it does not
+show is the orientation the case was served at.
 
-A second, quieter departure fed the same bug. §5 step 2 stores the pattern the
-inverted algorithm produces; `verify-cases.ts` stored
+A case arrives at one of four angles, and on three of them the algorithm as
+written does not solve the cube in the user's hands — while study mode exists
+precisely so that algorithm can be run against that cube. Two ways to close
+that gap: state the rotation, or draw the case the way the algorithm expects
+to find it. This started as the former, a `y2` in front of the algorithm, and
+is now the latter. What a rotation is _for_ is getting the cube to look like
+something, and a picture says that directly; a prefix asks the reader to
+perform the turn in their head first. It was also on screen in 163 of the 228
+case-and-angle situations, so it was the normal state of that line rather than
+an exception.
+
+So the face is the angle its algorithm is written for, and a sheet whose
+algorithm wants a different angle gets a second, smaller face of the case
+turned to match — 21 of the 28 do. Seven want our angle and get no second
+picture, because an identical face repeated is not information. Rewriting an
+algorithm into its conjugate would have been a third option, equally correct
+and unrecognisable; the whole point is to teach the one sequence.
+
+The cost is that the panel no longer says which angle you faced, and study
+mode's line had to become "apply the setup, turn your cube to match the
+picture, then the algorithm". That turn is the recognition step this app is
+about, so making it explicit is not much of a loss. The rotation survives as
+the second face's `aria-label`, since a picture says nothing to a screen
+reader; `data.test.ts` checks that label against the cube model rather than
+trusting the arithmetic.
+
+None of that would work without a second, quieter departure. §5 step 2 stores
+the pattern the inverted algorithm produces; `verify-cases.ts` stored
 `canonicalPattern(...)` of it instead — the lexicographically smallest of its
 four rotations, which is what the _enumeration_ returns and has no relation to
 how any algorithm is written. For 42 of the 57 cases that is a different angle,

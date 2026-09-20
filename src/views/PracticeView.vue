@@ -18,15 +18,13 @@ import {
   pickRotation,
   sliderFromIntroEvery,
 } from '@/core/pace'
-import { applyMoves, SOLVED } from '@/core/cube'
 import { CASES_BY_ID } from '@/core/data/cases'
-import { patternFromCube } from '@/core/pattern'
 import { pickScramble, type PickedScramble } from '@/core/scramble'
 import { formatMs } from '@/core/time'
 import { LIMITS, useSettingsStore } from '@/stores/settings'
 import { useSelectionStore } from '@/stores/selection'
 import { useSolvesStore } from '@/stores/solves'
-import type { Mode, Pattern, Solve } from '@/core/types'
+import type { Mode, Solve } from '@/core/types'
 
 const props = defineProps<{ mode: Mode }>()
 
@@ -36,7 +34,7 @@ const selection = useSelectionStore()
 const solves = useSolvesStore()
 
 const current = ref<PickedScramble | null>(null)
-const revealed = ref<{ caseId: number; ms: number | null; pattern: Pattern } | null>(null)
+const revealed = ref<{ caseId: number; ms: number | null } | null>(null)
 const showSettings = ref(false)
 
 /**
@@ -125,7 +123,6 @@ function onSolve(ms: number): void {
   revealed.value = {
     caseId: picked.caseId,
     ms,
-    pattern: patternFromCube(applyMoves(SOLVED, picked.scramble)),
   }
   drawNext()
 }
@@ -154,7 +151,6 @@ function markUnknown(): void {
   revealed.value = {
     caseId: picked.caseId,
     ms: null,
-    pattern: patternFromCube(applyMoves(SOLVED, picked.scramble)),
   }
 }
 
@@ -463,7 +459,8 @@ watch(
       <!-- min-h rather than a fixed height: the study line wraps on a phone. -->
       <p class="min-h-5 max-w-md text-center text-sm text-muted">
         <template v-if="studying">
-          Apply the setup, then the algorithm — the cube ends solved. Repeat as often as you like.
+          Apply the setup, turn your cube to match the picture, then the algorithm — it ends solved.
+          Repeat as often as you like.
         </template>
         <template v-else-if="phase === 'idle'">
           <span class="hidden sm:inline">Hold space to get ready, release to start.</span>
@@ -499,12 +496,7 @@ watch(
         No key and no out-in mode: between two solves the panel should update
         in place, not empty itself and leave a gap where it was.
       -->
-      <CaseReveal
-        v-if="revealed && revealedCase"
-        :oll-case="revealedCase"
-        :ms="revealed.ms"
-        :pattern="revealed.pattern"
-      />
+      <CaseReveal v-if="revealed && revealedCase" :oll-case="revealedCase" :ms="revealed.ms" />
     </Transition>
 
     <!-- Outside the Transition above, which takes a single child. -->

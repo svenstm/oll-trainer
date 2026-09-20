@@ -19,9 +19,10 @@ Three modes:
   session and days away from the app.
 
 In every mode, a case you look at and blank on gets **I don't know** (or `i`)
-rather than a guess. It shows you the algorithm and holds the setup on screen,
-so you can run it against the cube already in your hands as many times as you
-like — and it tells the scheduler the one thing a stopwatch cannot.
+rather than a guess. It shows you the algorithm, and the case drawn the way
+that algorithm expects to find it, and holds the setup on screen — so you can
+turn the cube already in your hands to match and run it as many times as you
+like. And it tells the scheduler the one thing a stopwatch cannot.
 
 ## Credit
 
