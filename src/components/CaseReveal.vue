@@ -53,75 +53,79 @@ const alternatives = computed<Alternative[]>(() =>
 
 <template>
   <section
-    class="flex items-center gap-4 rounded-tile border border-border bg-surface p-4"
+    class="rounded-tile border border-border bg-surface p-4"
     data-testid="case-reveal"
     aria-live="polite"
   >
-    <div class="w-20 shrink-0 sm:w-24">
-      <!--
-        The angle the canonical algorithm below is written for, which is the
-        angle the case is stored at. Not the angle it was just served from: an
-        algorithm printed beside a picture it does not solve is the one thing
-        this panel must never do, and a `y` in front of it asked the reader to
-        do the rotation in their head instead.
-      -->
-      <OllFace
-        :pattern="ollCase.pattern"
-        :label="`OLL ${ollCase.id}, ${ollCase.name}`"
-        data-testid="case-face"
-      />
+    <p class="flex flex-wrap items-baseline gap-x-2">
+      <span class="text-lg font-semibold">OLL {{ ollCase.id }}</span>
+      <span class="text-lg">{{ ollCase.name }}</span>
+      <span v-if="ms === null" class="text-lg font-medium text-danger" data-testid="didnt-know">
+        Didn't know
+      </span>
+      <span v-else class="font-mono text-lg tabular-nums text-accent">{{ formatMs(ms) }}</span>
+    </p>
+    <p class="text-sm text-muted">{{ ollCase.group }}</p>
+
+    <!--
+      A row per algorithm, each against the picture it solves, and every row
+      opening with a face column of the same width so the algorithms line up
+      down the panel. Order is not what ties a picture to an algorithm here —
+      being on the same row is.
+    -->
+    <div class="mt-3 flex items-center gap-4">
+      <div class="w-20 shrink-0 sm:w-24">
+        <!--
+          The angle the canonical algorithm is written for, which is the angle
+          the case is stored at. Not the angle it was just served from: an
+          algorithm printed beside a picture it does not solve is the one
+          thing this panel must never do, and a `y` in front of it asked the
+          reader to do the rotation in their head instead.
+        -->
+        <OllFace
+          :pattern="ollCase.pattern"
+          :label="`OLL ${ollCase.id}, ${ollCase.name}`"
+          data-testid="case-face"
+        />
+      </div>
+      <p class="min-w-0 flex-1 font-mono text-sm" data-testid="solution">{{ ollCase.alg }}</p>
     </div>
 
-    <div class="min-w-0 flex-1">
-      <p class="flex flex-wrap items-baseline gap-x-2">
-        <span class="text-lg font-semibold">OLL {{ ollCase.id }}</span>
-        <span class="text-lg">{{ ollCase.name }}</span>
-        <span v-if="ms === null" class="text-lg font-medium text-danger" data-testid="didnt-know">
-          Didn't know
-        </span>
-        <span v-else class="font-mono text-lg tabular-nums text-accent">{{ formatMs(ms) }}</span>
-      </p>
-      <p class="text-sm text-muted">{{ ollCase.group }}</p>
-
-      <p class="mt-2 font-mono text-sm" data-testid="solution">{{ ollCase.alg }}</p>
-
+    <div
+      v-for="alternative in alternatives"
+      :key="alternative.source"
+      class="mt-3 flex items-center gap-4"
+      data-testid="alternative"
+    >
       <!--
-        Muted and named, so it reads as someone else's answer rather than a
-        second thing to learn: the line above is the one the scheduler
-        measures. A name and no link — PLAN §17 kept other people's sites out
-        of this app, and a link inside the panel would be a navigation control
-        in the one place the user is mid-solve. The URL is in SOURCES and the
-        README.
+        The column is kept even when there is no face to put in it, because
+        what makes this readable is the algorithms starting at the same place.
+        Seven of the 28 sheets' algorithms are written for our angle already
+        and get no picture — repeating the one above would say "turn to this"
+        where there is nothing to turn. With no face to hold it open the row
+        collapses to the height of its text, so the empty column costs width
+        and not height.
       -->
-      <p
-        v-for="alternative in alternatives"
-        :key="alternative.source"
-        class="mt-1 text-sm text-muted"
-        data-testid="alternative"
-      >
-        <!--
-          Inline rather than a flex row: on a phone the algorithm has to be
-          able to wrap onto the full width of the panel, and a flex item only
-          gets whatever the face and the name leave over — which turned an
-          eleven-move algorithm into three short lines.
-
-          Drawn only when the turn is real. Seven of the 28 sheets'
-          algorithms are written for our angle already, and repeating the
-          picture beside them would be a second identical face costing height
-          in the panel PracticeView keeps above the fold.
-        -->
-        <span v-if="alternative.pattern" class="mr-2 inline-block w-8 align-middle">
-          <OllFace
-            :pattern="alternative.pattern"
-            :label="`Hold the cube turned ${alternative.turn}`"
-            data-testid="alternative-face"
-          />
-        </span>
-        <span class="mr-2 align-middle text-xs" data-testid="alternative-source">{{
+      <div class="w-20 shrink-0 sm:w-24">
+        <OllFace
+          v-if="alternative.pattern"
+          :pattern="alternative.pattern"
+          :label="`Hold the cube turned ${alternative.turn}`"
+          data-testid="alternative-face"
+        />
+      </div>
+      <!--
+        Named after the algorithm, not before it, so the algorithms align —
+        and muted, so it reads as someone else's answer rather than a second
+        thing to learn: the row above is the one the scheduler measures. A
+        name and no link — PLAN §17 kept other people's sites out of this app,
+        and a link inside the panel would be a navigation control in the one
+        place the user is mid-solve. The URL is in SOURCES and the README.
+      -->
+      <p class="min-w-0 flex-1 text-sm text-muted">
+        <span class="font-mono" data-testid="alternative-alg">{{ alternative.alg }}</span>
+        <span class="ml-2 text-xs whitespace-nowrap" data-testid="alternative-source">{{
           SOURCES[alternative.source].name
-        }}</span
-        ><span class="align-middle font-mono" data-testid="alternative-alg">{{
-          alternative.alg
         }}</span>
       </p>
     </div>

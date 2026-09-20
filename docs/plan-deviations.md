@@ -204,12 +204,18 @@ perform the turn in their head first. It was also on screen in 163 of the 228
 case-and-angle situations, so it was the normal state of that line rather than
 an exception.
 
-So the face is the angle its algorithm is written for, and a sheet whose
-algorithm wants a different angle gets a second, smaller face of the case
-turned to match — 21 of the 28 do. Seven want our angle and get no second
-picture, because an identical face repeated is not information. Rewriting an
-algorithm into its conjugate would have been a third option, equally correct
-and unrecognisable; the whole point is to teach the one sequence.
+So the panel is a row per algorithm, each against the face it solves, every
+row opening with a face column of the same width so the algorithms line up
+down the page — what ties a picture to an algorithm is sharing a row, not
+being next to it in some order. A sheet whose algorithm wants a different
+angle gets a face of the case turned to match, and 21 of the 28 do. Seven want
+our angle and get an empty column: an identical face repeated would say "turn
+to this" where there is nothing to turn, while dropping the column would
+unalign the very thing the layout is for. With no face to hold it open the row
+collapses to the height of its text, so that column costs width and not
+height. Rewriting an algorithm into its conjugate would have been a third
+option, equally correct and unrecognisable; the whole point is to teach the
+one sequence.
 
 The cost is that the panel no longer says which angle you faced, and study
 mode's line had to become "apply the setup, turn your cube to match the
