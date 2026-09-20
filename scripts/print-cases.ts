@@ -1,6 +1,8 @@
 import { applyMoves, invertMoves, SOLVED } from '../src/core/cube'
 import { patternFromCube } from '../src/core/pattern'
+import { SOURCES } from '../src/core/types'
 import { OLL_ALGORITHMS } from './oll-algorithms'
+import { bindCases } from './verify-cases'
 
 /**
  * Draws a pattern the way <OllFace> will: U face boxed, side strips outside it.
@@ -29,5 +31,23 @@ for (let row = 0; row < order.length; row += 6) {
     console.log(drawings.map((d) => d[line]!.padEnd(9)).join(' '))
   }
   console.log(chunk.map((e) => e.name.slice(0, 8).padEnd(9)).join(' '))
+  console.log()
+}
+
+// Listed rather than drawn. A face at the alternative's own angle would be a
+// second near-identical picture per case, and the angle it is stored at is
+// already checked twice by machine — in `bindCases` and again in
+// `data.test.ts`. The grid above stays an independent view, read straight
+// from the algorithm table; this half needs the binding, which is where the
+// numbers and angles below come from.
+const bound = bindCases().filter((c) => c.alternatives.length > 0)
+console.log(`Alternatives (${bound.length} of ${OLL_ALGORITHMS.length} cases)\n`)
+for (const c of bound) {
+  console.log(`OLL ${String(c.id).padStart(2)}  ${c.name}`)
+  console.log(`        ours  ${c.alg}`)
+  for (const alternative of c.alternatives) {
+    const turned = alternative.quarterTurns === 0 ? '' : ` (${alternative.quarterTurns}q)`
+    console.log(`  ${SOURCES[alternative.source].name}  ${alternative.alg}${turned}`)
+  }
   console.log()
 }

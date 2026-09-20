@@ -9,16 +9,17 @@ import PracticeView from './PracticeView.vue'
 import SelectionView from './SelectionView.vue'
 import OllFace from '@/components/OllFace.vue'
 import ResultsPanel from '@/components/ResultsPanel.vue'
-import { applyMoves, SOLVED } from '@/core/cube'
-import { CASES_BY_ID } from '@/core/data/cases'
+import { applyMoves, invertMoves, SOLVED } from '@/core/cube'
+import { CASES, CASES_BY_ID } from '@/core/data/cases'
 import { GROUPED_CASES } from '@/core/groups'
-import { canonicalPattern, patternFromCube, patternKey, SOLVED_PATTERN } from '@/core/pattern'
+import { canonicalPattern, patternFromCube, patternKey, rotatePattern } from '@/core/pattern'
+import { ROTATIONS } from '@/core/scramble'
 import { routes } from '@/router/routes'
 import { resetStorageCache } from '@/stores/persist'
 import { useSelectionStore } from '@/stores/selection'
 import { useSettingsStore } from '@/stores/settings'
 import { useSolvesStore } from '@/stores/solves'
-import type { Mode, Solve } from '@/core/types'
+import type { Mode, Pattern, Solve } from '@/core/types'
 
 let pinia: Pinia
 let router: Router
@@ -553,37 +554,106 @@ describe('the case reveal', () => {
     useSettingsStore().update({ holdMs: 0 })
   })
 
-  it('draws the orientation that was actually served, not the canonical one', async () => {
-    const wrapper = await mountPractice('train')
-    const scramble = wrapper.get('[data-testid="scramble"]').text()
-    await doSolve()
-
-    const served = patternFromCube(applyMoves(SOLVED, scramble))
-    const drawn = wrapper
-      .findAll('[data-testid="case-reveal"] rect')
-      .map((rect) => [Number(rect.attributes('data-slot')), rect.attributes('data-oriented')])
-    for (const [slot, oriented] of drawn) {
-      expect(oriented, `slot ${slot}`).toBe(served[slot as number] === 1 ? 'true' : 'false')
+  /**
+   * The pattern a drawn face is actually showing.
+   *
+   * Read back from the stickers rather than from the props, because what this
+   * panel must never do is print an algorithm beside a picture it does not
+   * solve — and that is a claim about pixels, not about a prop. Only oriented
+   * side stickers are drawn at all, so absence means 0.
+   */
+  function drawnPattern(wrapper: ReturnType<typeof mount>, testid: string): Pattern {
+    const slots = Array.from({ length: 21 }, () => 0) as (0 | 1)[]
+    for (const rect of wrapper.findAll(`[data-testid="${testid}"] rect`)) {
+      if (rect.attributes('data-oriented') === 'true') {
+        slots[Number(rect.attributes('data-slot'))] = 1
+      }
     }
-    // And it really is the same case, just turned.
-    expect(patternKey(canonicalPattern(served))).toBe(
-      patternKey(canonicalPattern(CASES_BY_ID.get(27)!.pattern)),
-    )
-  })
+    return slots
+  }
 
-  it('shows a solution that solves the cube that was served', async () => {
+  it('draws the angle the algorithm is written for, whatever angle was served', async () => {
     const wrapper = await mountPractice('train')
-    // Several solves, because the angle is picked at random and the algorithm
-    // as written only solves one of the four.
+    // Several solves: the angle served is random, and the picture must not
+    // follow it — it follows the algorithm printed beside it.
     for (let i = 0; i < 8; i++) {
       const scramble = wrapper.get('[data-testid="scramble"]').text()
       await doSolve()
-      const solution = wrapper.get('[data-testid="solution"]').text()
-      const solved = applyMoves(applyMoves(SOLVED, scramble), solution)
-      expect(patternKey(patternFromCube(solved)), `${scramble} then ${solution}`).toBe(
-        patternKey(SOLVED_PATTERN),
-      )
+
+      const c = CASES_BY_ID.get(27)!
+      expect(patternKey(drawnPattern(wrapper, 'case-face')), scramble).toBe(patternKey(c.pattern))
     }
+  })
+
+  it('shows the algorithm bare, and it solves the picture drawn beside it', async () => {
+    const wrapper = await mountPractice('train')
+    await doSolve()
+
+    const alg = wrapper.get('[data-testid="solution"]').text()
+    // Bare: the rotation that used to lead this line is a picture now.
+    expect(alg).toBe(CASES_BY_ID.get(27)!.alg)
+    // The inverse of an algorithm creates the case it solves, so this is the
+    // picture that must be on screen next to it.
+    expect(patternKey(patternFromCube(applyMoves(SOLVED, invertMoves(alg))))).toBe(
+      patternKey(drawnPattern(wrapper, 'case-face')),
+    )
+  })
+
+  it("draws each sheet's algorithm against the picture that algorithm solves", async () => {
+    const c = CASES.find((entry) => entry.alternatives.some((a) => a.quarterTurns !== 0))!
+    useSelectionStore().set([c.id])
+    const wrapper = await mountPractice('train')
+    await doSolve()
+
+    const line = wrapper.get('[data-testid="alternative"]')
+    const alg = line.get('[data-testid="alternative-alg"]').text()
+    expect(alg).toBe(c.alternatives[0]!.alg)
+
+    // Its own picture, and it really is a different one from the canonical.
+    const shown = drawnPattern(wrapper, 'alternative-face')
+    expect(patternKey(patternFromCube(applyMoves(SOLVED, invertMoves(alg))))).toBe(
+      patternKey(shown),
+    )
+    expect(patternKey(shown)).not.toBe(patternKey(drawnPattern(wrapper, 'case-face')))
+    expect(patternKey(shown)).toBe(
+      patternKey(rotatePattern(c.pattern, c.alternatives[0]!.quarterTurns)),
+    )
+  })
+
+  it('names the turn for a screen reader, since the picture cannot', async () => {
+    const c = CASES.find((entry) => entry.alternatives.some((a) => a.quarterTurns !== 0))!
+    useSelectionStore().set([c.id])
+    const wrapper = await mountPractice('train')
+    await doSolve()
+
+    expect(wrapper.get('[data-testid="alternative-face"]').attributes('aria-label')).toBe(
+      `Hold the cube turned ${ROTATIONS[c.alternatives[0]!.quarterTurns]}`,
+    )
+  })
+
+  it('draws no second picture when the sheet agrees about the angle', async () => {
+    const c = CASES.find(
+      (entry) =>
+        entry.alternatives.length > 0 && entry.alternatives.every((a) => a.quarterTurns === 0),
+    )!
+    useSelectionStore().set([c.id])
+    const wrapper = await mountPractice('train')
+    await doSolve()
+
+    expect(wrapper.findAll('[data-testid="alternative"]')).toHaveLength(c.alternatives.length)
+    expect(wrapper.findAll('[data-testid="alternative-face"]')).toHaveLength(0)
+  })
+
+  it('shows no second line for a case the sheets agree on', async () => {
+    // OLL 27 is Sune, and Cube Academy writes it exactly as we do.
+    expect(CASES_BY_ID.get(27)!.alternatives).toHaveLength(0)
+    const wrapper = await mountPractice('train')
+    await doSolve()
+
+    // `get` throws if the panel is not there, so reaching the next line at
+    // all says the reveal rendered and simply had nothing extra to show.
+    wrapper.get('[data-testid="case-reveal"]')
+    expect(wrapper.findAll('[data-testid="alternative"]')).toHaveLength(0)
   })
 })
 

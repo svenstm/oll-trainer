@@ -19,9 +19,10 @@ Three modes:
   session and days away from the app.
 
 In every mode, a case you look at and blank on gets **I don't know** (or `i`)
-rather than a guess. It shows you the algorithm and holds the setup on screen,
-so you can run it against the cube already in your hands as many times as you
-like — and it tells the scheduler the one thing a stopwatch cannot.
+rather than a guess. It shows you the algorithm, and the case drawn the way
+that algorithm expects to find it, and holds the setup on screen — so you can
+turn the cube already in your hands to match and run it as many times as you
+like. And it tells the scheduler the one thing a stopwatch cannot.
 
 ## Credit
 
@@ -30,6 +31,10 @@ The original OLL trainer, and the idea this app rebuilds, are the work of
 independent rewrite: none of its code, scramble data, or images are used here.
 The case data in `src/core/data/` is generated from first principles by the
 scripts in `scripts/`.
+
+Where a case shows a second algorithm, it is from **Cube Academy**'s sheet
+(<https://www.cube.academy/oll-algs>), credited on screen beside it. The
+canonical algorithm above it is still the one the app teaches and times.
 
 ## Your data
 
@@ -95,7 +100,10 @@ pnpm pace:simulate    # acceptance checks for the scheduler, against a simulated
 
 `pnpm data:cases` refuses to write anything unless all 57 hand-entered
 algorithms bind to exactly the 57 independently enumerated orientation
-classes.
+classes. Other people's sheets are held to the same standard, and are not
+numbered by hand: the OLL number and the angle each of their algorithms is
+written for are both derived by inverting it, so a mistyped algorithm fails
+the bind rather than landing on the wrong case.
 
 ## Licence
 

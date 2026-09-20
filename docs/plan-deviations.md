@@ -43,7 +43,7 @@ Import merges by solve id rather than replacing, which makes it safe in all
 three situations that matter — restoring onto an empty profile, re-importing
 the same file, and merging two devices.
 
-## Generated alternative algorithms were dropped (§16)
+## Alternative algorithms are transcribed, not generated (§16)
 
 Decision 16 wanted 2–3 generated alternatives per case, "at no extra cost"
 because the scramble generator was already running a search. That premise did
@@ -59,14 +59,49 @@ Full-cube solutions _are_ valid OLL algorithms for their case: whether a
 sequence orients a state depends only on the orientation vector, not on the
 permutation. But they run 12–18 moves against a canonical algorithm's 8–11, so
 they would be worse than the algorithm they sat beside, not an alternative to
-it.
+it. Building an OLL solver — IDA\* over the cube group with a pruning table —
+would have cost more than the rest of phase 2 together.
 
-Building an OLL solver — IDA* over the cube group with a pruning table — would
-have cost more than the rest of phase 2 together. The `alternatives` field was
-removed rather than left permanently empty. Re-adding it, if ever wanted, means
-either that solver or a second hand-entered algorithm per case; the latter
-doubles the one table the plan calls the single place a human typo can enter
-the pipeline.
+The field was removed, and the note left here said re-adding it meant either
+that solver or a second hand-entered algorithm per case — the latter dismissed
+because it "doubles the one table the plan calls the single place a human typo
+can enter the pipeline". The second route was taken, and that objection turns
+out not to bite, because the second table is not hand-numbered.
+
+[Cube Academy's sheet](https://www.cube.academy/oll-algs) is transcribed into
+`scripts/cube-academy-algorithms.ts` in the page's own order, with its own
+section headings and **no OLL numbers** — the page carries none. `bindCases`
+derives each number the way the canonical table's numbers are _checked_: it
+inverts the algorithm and reads off the pattern. A mistyped entry therefore
+cannot land quietly on the wrong case. It matches no enumerated class, or
+collides with one already claimed, and `pnpm data:cases` refuses to write. The
+second table adds algorithms; it does not add a second place a case can be
+mis-numbered.
+
+Two things fall out of using someone else's sheet rather than a solver:
+
+- **Angles disagree.** A case is stored in the orientation its own algorithm
+  is written for, and 21 of Cube Academy's are written for a different one.
+  Rewriting them into ours would turn an R/U algorithm into an L/U one and
+  throw away the ergonomics that made another sheet worth reading, so each
+  alternative carries a `quarterTurns` offset, and the reveal draws a second
+  picture of the case turned by it — see below.
+- **Half the sheet is already ours.** 28 of the 57 are the algorithm this
+  project teaches; one more is that algorithm written from another angle. They
+  are transcribed anyway, so the file stays a faithful copy, and dropped by
+  the binder. 28 cases end up with an alternative and 29 with none, so an
+  empty list is normal — unlike the canonical table, coverage is not asserted.
+
+The duplicate rule stops at "our algorithm, possibly turned". Twelve more
+entries have the same net effect on the cube and are _not_ duplicates: OLL
+34's `f R f' U' r' U' R U M'` permutes the cube exactly as our eleven-move
+algorithm does, in nine moves. Dropping those would discard the best reason to
+read another sheet at all.
+
+The conjugation table moved from `src/core/scramble.ts` to
+`src/core/rotate.ts` to make this work. The binder needs it to tell a new
+algorithm from one of ours written sideways, and `scramble.ts` imports the
+generated case data — a generator reaching for its own previous output.
 
 ## A browser-driven offline check was added (§10, phase 1)
 
@@ -153,20 +188,45 @@ an `outcome` was necessarily timed. Writing v2 is what matters: an older build
 reads the version, refuses the file and says so, instead of quietly taking every
 blank in it for an ordinary solve.
 
-## The reveal names the angle it is drawn at (§9)
+## The reveal draws the angle its algorithm is written for (§9)
 
-§9 has `CaseReveal` show "the canonical alg", and it does — but the face beside
-it is the orientation that was actually served, which is one of four angles.
-On three of them the algorithm as written does not solve the cube in the user's
-hands, and study mode exists precisely so that algorithm can be run against
-that cube. So the line is now the cube rotation that squares the served angle
-up with the algorithm, followed by the algorithm itself, unchanged: `y2 R' U' R
-U' R' U2 R F R U R' U' F'`. Rewriting the algorithm into its conjugate would
-have been equally correct and unrecognisable — the whole point is to teach the
+§9 has `CaseReveal` show "the canonical alg", and it does. What it does not
+show is the orientation the case was served at.
+
+A case arrives at one of four angles, and on three of them the algorithm as
+written does not solve the cube in the user's hands — while study mode exists
+precisely so that algorithm can be run against that cube. Two ways to close
+that gap: state the rotation, or draw the case the way the algorithm expects
+to find it. This started as the former, a `y2` in front of the algorithm, and
+is now the latter. What a rotation is _for_ is getting the cube to look like
+something, and a picture says that directly; a prefix asks the reader to
+perform the turn in their head first. It was also on screen in 163 of the 228
+case-and-angle situations, so it was the normal state of that line rather than
+an exception.
+
+So the panel is a row per algorithm, each against the face it solves, every
+row opening with a face column of the same width so the algorithms line up
+down the page — what ties a picture to an algorithm is sharing a row, not
+being next to it in some order. A sheet whose algorithm wants a different
+angle gets a face of the case turned to match, and 21 of the 28 do. Seven want
+our angle and get an empty column: an identical face repeated would say "turn
+to this" where there is nothing to turn, while dropping the column would
+unalign the very thing the layout is for. With no face to hold it open the row
+collapses to the height of its text, so that column costs width and not
+height. Rewriting an algorithm into its conjugate would have been a third
+option, equally correct and unrecognisable; the whole point is to teach the
 one sequence.
 
-A second, quieter departure fed the same bug. §5 step 2 stores the pattern the
-inverted algorithm produces; `verify-cases.ts` stored
+The cost is that the panel no longer says which angle you faced, and study
+mode's line had to become "apply the setup, turn your cube to match the
+picture, then the algorithm". That turn is the recognition step this app is
+about, so making it explicit is not much of a loss. The rotation survives as
+the second face's `aria-label`, since a picture says nothing to a screen
+reader; `data.test.ts` checks that label against the cube model rather than
+trusting the arithmetic.
+
+None of that would work without a second, quieter departure. §5 step 2 stores
+the pattern the inverted algorithm produces; `verify-cases.ts` stored
 `canonicalPattern(...)` of it instead — the lexicographically smallest of its
 four rotations, which is what the _enumeration_ returns and has no relation to
 how any algorithm is written. For 42 of the 57 cases that is a different angle,
