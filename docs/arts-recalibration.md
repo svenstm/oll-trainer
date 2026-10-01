@@ -1,6 +1,6 @@
 # ARTS recalibration
 
-The open tuning task from [PLAN.md §7](PLAN.md). The constants were fitted
+The open tuning task from [the original plan, §7](https://github.com/svenstm/oll-trainer/blob/66b7946/docs/PLAN.md). The constants were fitted
 against a _within-session_ timeline where gaps ran 20 s to 20 minutes. This
 records what they do once the history is durable, and what changed as a result.
 

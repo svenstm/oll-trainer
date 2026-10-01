@@ -82,7 +82,7 @@ export interface OllCase {
    * Other sheets' algorithms for this case, shown beside `alg` but never in
    * place of it: `alg` remains the one the scheduler measures.
    *
-   * docs/PLAN.md §16 wanted 2-3 *generated* alternatives, which did not work
+   * The original plan wanted 2-3 *generated* alternatives, which did not work
    * out — see docs/plan-deviations.md. These are transcribed instead, and a
    * case has one only when the sheet's algorithm actually differs from ours,
    * so an empty list is the normal state for 29 of the 57.
