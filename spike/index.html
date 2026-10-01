@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart cube spike</title>
+    <style>
+      body {
+        font:
+          15px/1.4 system-ui,
+          sans-serif;
+        margin: 16px;
+        background: #fff;
+        color: #111;
+      }
+      button {
+        font: inherit;
+        padding: 8px 12px;
+        margin: 0 8px 8px 0;
+      }
+      pre {
+        background: #f3f3f3;
+        padding: 8px;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      #moves {
+        font-family: ui-monospace, monospace;
+        min-height: 2em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Smart cube spike</h1>
+    <p id="support"></p>
+    <p>
+      <button id="connect">Connect GAN cube</button>
+      <button id="scan">Scan any device (diagnostics)</button>
+    </p>
+    <p>
+      <button id="facelets" disabled>Request state</button>
+      <button id="reset" disabled>Mark solved</button>
+      <button id="disconnect" disabled>Disconnect</button>
+    </p>
+    <h2>Device</h2>
+    <pre id="device">—</pre>
+    <h2>State</h2>
+    <pre id="state">—</pre>
+    <h2>Moves</h2>
+    <p id="moves"></p>
+    <h2>Log</h2>
+    <pre id="log"></pre>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
