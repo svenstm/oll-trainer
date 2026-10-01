@@ -34,7 +34,14 @@ export interface ScrambleProgress extends Place {
 
 const stateKey = (cube: Cube) => cube.join('')
 
-export function trackScramble(scramble: string): ScrambleTrack {
+/**
+ * Every state the scramble passes through, applied to `from`. That need not
+ * be solved: any cube with F2L solved and the last layer oriented works,
+ * since a scramble's effect on F2L and on orientation does not depend on how
+ * the last layer is permuted. That is where every solve ends, so the next
+ * scramble can start straight away.
+ */
+export function trackScramble(scramble: string, from: Cube = SOLVED): ScrambleTrack {
   const moves = parseMoves(scramble)
   const places = new Map<string, Place>()
   const remember = (cube: Cube, place: Place) => {
@@ -44,7 +51,7 @@ export function trackScramble(scramble: string): ScrambleTrack {
     if (!places.has(key)) places.set(key, place)
   }
 
-  let cube = SOLVED
+  let cube = from
   remember(cube, { done: 0, half: false })
   moves.forEach((move, index) => {
     if (move.amount === 2) {

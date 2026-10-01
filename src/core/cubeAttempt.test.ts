@@ -16,6 +16,7 @@ import { CASES_BY_ID } from './data/cases'
 import { pickScramble } from './scramble'
 
 const SUNE = CASES_BY_ID.get(27)!
+const T_PERM = "R U R' U' R' F R2 U' R' U' R U R' F'"
 const picked = pickScramble(27, () => 0, 'y')
 const config = attemptConfig(picked.scramble, 15_000)
 
@@ -49,11 +50,28 @@ describe('cube predicates', () => {
 })
 
 describe('a smart-cube attempt', () => {
-  it('waits for a solved cube before following the scramble', () => {
+  it('waits for an OLL-solved cube before following the scramble', () => {
     const scrambled = applyMoves(SOLVED, 'R')
     const start = startAttempt(scrambled, config)
     expect(start.phase).toBe('unsolved')
     expect(play(start, scrambled, "R'").state.phase).toBe('scrambling')
+  })
+
+  it('starts the next scramble straight from where a solve ends, PLL unsolved', () => {
+    const afterSolve = applyMoves(SOLVED, T_PERM)
+    const start = startAttempt(afterSolve, config)
+    expect(start.phase).toBe('scrambling')
+    expect(play(start, afterSolve, picked.scramble).state.phase).toBe('inspecting')
+  })
+
+  it('starts again from an AUF made before scrambling, rather than asking to undo it', () => {
+    const start = startAttempt(SOLVED, config)
+    const turned = play(start, SOLVED, 'U')
+    expect(turned.state).toMatchObject({
+      phase: 'scrambling',
+      progress: { done: 0, correction: [] },
+    })
+    expect(play(turned.state, turned.cube, picked.scramble).state.phase).toBe('inspecting')
   })
 
   it('runs scramble → inspection → solve → result', () => {

@@ -2,23 +2,25 @@
  * One attempt with a smart cube, as a pure reducer — the counterpart of
  * `timer.ts` for when the cube, not a key, says what is happening.
  *
- *   unsolved   --solved-----------> scrambling
+ *   unsolved   --OLL solved-------> scrambling   (from wherever the cube is)
  *   unsolved   --case reached-----> inspecting
  *   scrambling --case reached-----> inspecting
  *   inspecting --any turn---------> solving      (recognition time recorded)
  *   inspecting --15 s pass--------> done         (a blank)
  *   solving    --OLL solved-------> done         (the solve is recorded)
+ *
+ * A solve ends OLL solved, which is all a scramble needs to start from, so
+ * the attempt after a solve begins scrambling at once.
  *   any        --abandon----------> unsolved
  *
  * Every cube state here is in the user's grip frame (see `grip.ts`), so `U`
  * is the top face and `SOLVED` is solved.
  */
 
-import { applyMoves, D, isSolved, SOLVED, type Cube, type Move } from './cube'
+import { applyMoves, D, SOLVED, type Cube, type Move } from './cube'
 import { patternFromCube, patternsEqual, SOLVED_PATTERN } from './pattern'
 import {
   advance,
-  locate,
   START,
   trackScramble,
   type ScrambleProgress,
@@ -31,7 +33,7 @@ export const INSPECTION_MS = 15_000
 
 export type CubeAttemptState =
   | { phase: 'unsolved' }
-  | { phase: 'scrambling'; progress: ScrambleProgress }
+  | { phase: 'scrambling'; track: ScrambleTrack; progress: ScrambleProgress }
   | { phase: 'inspecting'; since: number }
   | { phase: 'solving'; recognitionMs: number; startedAt: number }
   | { phase: 'done' }
@@ -51,7 +53,7 @@ export type CubeAttemptResult =
   { outcome: 'solved'; recognitionMs: number; solveMs: number } | { outcome: 'unknown' }
 
 export interface CubeAttemptConfig {
-  track: ScrambleTrack
+  scramble: string
   /** The served case at the served angle. */
   target: Pattern
   inspectionMs: number
@@ -64,7 +66,7 @@ export interface CubeAttemptTransition {
 
 export function attemptConfig(scramble: string, inspectionMs = INSPECTION_MS): CubeAttemptConfig {
   return {
-    track: trackScramble(scramble),
+    scramble,
     target: patternFromCube(applyMoves(SOLVED, scramble)),
     inspectionMs,
   }
@@ -94,9 +96,11 @@ export function isInCase(cube: Cube, target: Pattern): boolean {
  * inspection from — so this never starts in `inspecting`.
  */
 export function startAttempt(cube: Cube | null, config: CubeAttemptConfig): CubeAttemptState {
-  if (!cube) return { phase: 'unsolved' }
-  const progress = locate(config.track, cube)
-  return progress ? { phase: 'scrambling', progress } : { phase: 'unsolved' }
+  return cube && isOllSolved(cube) ? scramblingFrom(cube, config) : { phase: 'unsolved' }
+}
+
+function scramblingFrom(cube: Cube, config: CubeAttemptConfig): CubeAttemptState {
+  return { phase: 'scrambling', track: trackScramble(config.scramble, cube), progress: START }
 }
 
 export function reduceAttempt(
@@ -120,14 +124,20 @@ export function reduceAttempt(
   switch (state.phase) {
     case 'unsolved':
       if (isInCase(cube, config.target)) return { state: { phase: 'inspecting', since: at } }
-      if (isSolved(cube)) return { state: { phase: 'scrambling', progress: START } }
+      if (isOllSolved(cube)) return { state: scramblingFrom(cube, config) }
       return { state }
 
     case 'scrambling':
       // By whatever route: a wrong turn that still lands on the case counts.
       if (isInCase(cube, config.target)) return { state: { phase: 'inspecting', since: at } }
-      return {
-        state: { phase: 'scrambling', progress: advance(state.progress, config.track, cube, move) },
+      {
+        const progress = advance(state.progress, state.track, cube, move)
+        // Strayed onto another OLL-solved state — an AUF, a PLL — which is as
+        // good a start as the last one, so start again from there.
+        if (progress.correction.length > 0 && isOllSolved(cube)) {
+          return { state: scramblingFrom(cube, config) }
+        }
+        return { state: { ...state, progress } }
       }
 
     case 'inspecting':

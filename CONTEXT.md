@@ -15,7 +15,7 @@ Which way round the case is presented on the U face, as a quarter-turn offset. L
 _Avoid_: Rotation, AUF
 
 **Scramble**:
-A move sequence that turns a solved cube into a given case at a given angle. Many scrambles reach the same case, each ending on a different last-layer permutation.
+A move sequence that turns any cube with OLL solved — solved outright, or straight after a solve — into a given case at a given angle. Many scrambles reach the same case, each ending on a different last-layer permutation.
 _Avoid_: Setup, sequence
 
 **Case reached**:

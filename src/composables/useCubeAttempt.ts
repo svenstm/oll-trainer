@@ -20,8 +20,11 @@ import { useCubeStore, type CubeSignal } from '@/stores/cube'
 import { useSettingsStore } from '@/stores/settings'
 
 export interface UseCubeAttemptOptions {
-  /** The scramble being served, or null when there is none. */
-  scramble: Ref<string | null>
+  /**
+   * What is being served, or null. Watched by identity, not by its text: the
+   * same scramble can be served twice running, and that is still a new attempt.
+   */
+  served: Ref<{ scramble: string } | null>
   /**
    * False parks the attempt — while studying, nothing on the cube is timed.
    * Turning it back on starts afresh from wherever the cube now is.
@@ -40,7 +43,7 @@ export function useCubeAttempt(options: UseCubeAttemptOptions) {
   let frame = 0
 
   const now = () => Math.floor(performance.now())
-  const active = () => cube.connected && options.enabled.value && options.scramble.value !== null
+  const active = () => cube.connected && options.enabled.value && options.served.value !== null
 
   /**
    * Like the keyboard timer, the last result stays on screen while the next
@@ -54,7 +57,7 @@ export function useCubeAttempt(options: UseCubeAttemptOptions) {
       config = null
       return
     }
-    config = attemptConfig(options.scramble.value!)
+    config = attemptConfig(options.served.value!.scramble)
     state.value = startAttempt(cube.cube, config)
   }
 
@@ -121,7 +124,7 @@ export function useCubeAttempt(options: UseCubeAttemptOptions) {
 
   const unlisten = cube.listen(onSignal)
   watch(
-    [options.scramble, options.enabled, () => cube.connected, () => settings.settings.grip],
+    [options.served, options.enabled, () => cube.connected, () => settings.settings.grip],
     restart,
     { immediate: true },
   )

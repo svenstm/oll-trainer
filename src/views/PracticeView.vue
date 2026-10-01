@@ -305,7 +305,7 @@ const { phase, displayMs, armed, touchHandlers } = useTimer({
 })
 
 const cubeAttempt = useCubeAttempt({
-  scramble: computed(() => current.value?.scramble ?? null),
+  served: current,
   enabled: computed(() => !studying.value),
   onResult: onCubeResult,
 })
@@ -565,7 +565,7 @@ watch(
         </template>
         <template v-else-if="cube.connected">
           <template v-if="cubePhase === 'unsolved'">
-            Solve the cube to start the scramble.
+            Solve the cube — orienting the top is enough — to start the scramble.
             <button
               type="button"
               class="ml-1 underline hover:text-fg"

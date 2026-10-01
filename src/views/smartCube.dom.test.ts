@@ -159,7 +159,7 @@ describe('connecting a smart cube', () => {
 describe('an attempt with a smart cube', () => {
   beforeEach(() => useSettingsStore().update({ grip: IDENTITY }))
 
-  it('waits for a solved cube before the scramble', async () => {
+  it('waits for an OLL-solved cube before the scramble', async () => {
     const wrapper = await mountPractice()
     // Connected with an R turn on it.
     await connect(wrapper, 'UUFUUFUUFRRRRRRRRRFFDFFDFFDDDBDDBDDBLLLLLLLLLUBBUBBUBB')
@@ -226,6 +226,26 @@ describe('an attempt with a smart cube', () => {
 
     await turn('U')
     expect(timer(wrapper).attributes('data-phase')).toBe('running')
+  })
+
+  it('keeps the result on screen and serves the next scramble straight away', async () => {
+    const wrapper = await mountPractice()
+    await connect(wrapper)
+    const scramble = scrambleOf(wrapper)
+    await turn(scramble)
+    await turn(invertMoves(scramble))
+    const shown = timer(wrapper).text()
+
+    expect(useSolvesStore().count).toBe(1)
+    expect(wrapper.text()).not.toContain('Solve the cube')
+    expect(wrapper.text()).toContain('Apply the scramble')
+    expect(timer(wrapper).text()).toBe(shown)
+    expect(wrapper.find('[data-testid="split"]').exists()).toBe(true)
+
+    // And the next one runs from here, without the cube being solved first.
+    await turn('U')
+    await turn(scrambleOf(wrapper))
+    expect(timer(wrapper).attributes('data-phase')).toBe('inspecting')
   })
 
   it('makes running out of inspection a blank', async () => {
