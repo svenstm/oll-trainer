@@ -243,9 +243,12 @@ describe('an attempt with a smart cube', () => {
     expect(wrapper.find('[data-testid="split"]').exists()).toBe(true)
 
     // And the next one runs from here, without the cube being solved first.
+    expect(wrapper.find('[data-testid="case-reveal"]').exists()).toBe(true)
     await turn('U')
     await turn(scrambleOf(wrapper))
     expect(timer(wrapper).attributes('data-phase')).toBe('inspecting')
+    // Inspection is for recognising the new case, so the last solution goes.
+    expect(wrapper.find('[data-testid="case-reveal"]').exists()).toBe(false)
   })
 
   it('makes running out of inspection a blank', async () => {

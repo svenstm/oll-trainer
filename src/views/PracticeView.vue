@@ -313,6 +313,15 @@ const cubePhase = cubeAttempt.phase
 const cubeProgress = cubeAttempt.progress
 const cubeDisplayMs = cubeAttempt.displayMs
 
+/**
+ * The last case's solution has done its job by the time the next case is on
+ * the cube. Left up, it sits beside a case you are meant to be recognising —
+ * and when the same case comes round again, it is the answer.
+ */
+watch(cubePhase, (next) => {
+  if (next === 'inspecting') revealed.value = null
+})
+
 /** One display for both inputs. */
 const timerMs = computed(() => (cube.connected ? cubeDisplayMs.value : displayMs.value))
 const timerPhase = computed(() => {
