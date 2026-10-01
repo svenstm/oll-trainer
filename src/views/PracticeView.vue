@@ -313,15 +313,6 @@ const cubePhase = cubeAttempt.phase
 const cubeProgress = cubeAttempt.progress
 const cubeDisplayMs = cubeAttempt.displayMs
 
-/**
- * The last case's solution has done its job by the time the next case is on
- * the cube. Left up, it sits beside a case you are meant to be recognising —
- * and when the same case comes round again, it is the answer.
- */
-watch(cubePhase, (next) => {
-  if (next === 'inspecting') revealed.value = null
-})
-
 /** One display for both inputs. */
 const timerMs = computed(() => (cube.connected ? cubeDisplayMs.value : displayMs.value))
 const timerPhase = computed(() => {
@@ -329,6 +320,16 @@ const timerPhase = computed(() => {
   if (cubePhase.value === 'inspecting') return 'inspecting'
   if (cubePhase.value === 'solving') return 'running'
   return 'idle'
+})
+
+/**
+ * The last case's solution has done its job once the next attempt starts —
+ * inspection with a cube, release with the keyboard. Left up, it sits beside a
+ * case you are meant to be recognising, and when the same case comes round
+ * again it is the answer.
+ */
+watch(timerPhase, (next) => {
+  if (next === 'inspecting' || next === 'running') revealed.value = null
 })
 
 /**

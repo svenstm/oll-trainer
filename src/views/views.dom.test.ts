@@ -231,6 +231,21 @@ describe('PracticeView', () => {
     expect(reveal.text()).toContain(`OLL ${solves.lastSolve!.caseId}`)
   })
 
+  it('hides the last solution once the next solve starts', async () => {
+    useSettingsStore().update({ holdMs: 0 })
+    const wrapper = await mountPractice('train')
+    await doSolve()
+    expect(wrapper.find('[data-testid="case-reveal"]').exists()).toBe(true)
+
+    key('keydown', { key: ' ' })
+    await nextTick()
+    // Still up while getting ready: nothing is being recognised yet.
+    expect(wrapper.find('[data-testid="case-reveal"]').exists()).toBe(true)
+    key('keyup', { key: ' ' })
+    await nextTick()
+    expect(wrapper.find('[data-testid="case-reveal"]').exists()).toBe(false)
+  })
+
   it('draws a new scramble after each solve', async () => {
     const wrapper = await mountPractice('recap')
     const seen = new Set<string>()
