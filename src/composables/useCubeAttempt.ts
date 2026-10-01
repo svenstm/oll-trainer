@@ -80,11 +80,12 @@ export function useCubeAttempt(options: UseCubeAttemptOptions) {
 
   function startLoop(): void {
     if (frame !== 0) return
+    // No rescheduling here: `dispatch` calls back into `startLoop` while the
+    // attempt is still timing. Doing both doubled the loop every frame, and
+    // within a second the page had no time left to hear the cube.
     const step = () => {
       frame = 0
       dispatch({ type: 'tick', at: now() })
-      const phase = state.value?.phase
-      if (phase === 'inspecting' || phase === 'solving') frame = requestAnimationFrame(step)
     }
     frame = requestAnimationFrame(step)
   }

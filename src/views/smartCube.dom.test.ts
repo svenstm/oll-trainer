@@ -50,6 +50,9 @@ beforeEach(async () => {
   sent.length = 0
   clock = 1000
   vi.spyOn(performance, 'now').mockImplementation(() => clock)
+  // One fixed scramble: a random one can begin with exactly the turn a test
+  // uses to knock the cube off solved, and then that turn is progress.
+  vi.spyOn(Math, 'random').mockReturnValue(0)
   Object.defineProperty(navigator, 'bluetooth', { value: {}, configurable: true })
   pinia = createPinia()
   setActivePinia(pinia)
@@ -199,6 +202,30 @@ describe('an attempt with a smart cube', () => {
     expect(wrapper.get('[data-testid="split"]').text()).toContain('recognition')
     // Recorded as the whole attempt, and the timer stops on that number.
     expect(wrapper.text()).toContain(`${((solve as { ms: number }).ms / 1000).toFixed(2)}`)
+  })
+
+  it('keeps one frame loop through inspection, and still hears the first turn', async () => {
+    // Frames run by hand, so a loop that multiplies itself shows up as a queue.
+    let queue: FrameRequestCallback[] = []
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      queue.push(callback)
+      return queue.length
+    })
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {})
+
+    const wrapper = await mountPractice()
+    await connect(wrapper)
+    await turn(scrambleOf(wrapper))
+    for (let i = 0; i < 10; i++) {
+      expect(queue).toHaveLength(1)
+      const frames = queue
+      queue = []
+      clock += 16
+      for (const callback of frames) callback(clock)
+    }
+
+    await turn('U')
+    expect(timer(wrapper).attributes('data-phase')).toBe('running')
   })
 
   it('makes running out of inspection a blank', async () => {
