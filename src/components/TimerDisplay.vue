@@ -5,7 +5,8 @@ import type { TimerPhase } from '@/core/timer'
 
 const props = defineProps<{
   ms: number
-  phase: TimerPhase
+  /** `inspecting` is a smart cube's countdown; `ms` is then the time left. */
+  phase: TimerPhase | 'inspecting'
   /** Font size in rem, from settings. */
   size: number
 }>()
@@ -16,10 +17,17 @@ const colour = computed(() => {
       return 'text-ready'
     case 'holding':
       return 'text-muted'
+    case 'inspecting':
+      return 'text-accent'
     default:
       return 'text-fg'
   }
 })
+
+/** Inspection counts down in whole seconds, the way a WCA display does. */
+const text = computed(() =>
+  props.phase === 'inspecting' ? String(Math.ceil(props.ms / 1000)) : formatMs(props.ms),
+)
 </script>
 
 <template>
@@ -31,6 +39,6 @@ const colour = computed(() => {
     data-testid="timer"
     aria-live="polite"
   >
-    {{ formatMs(ms) }}
+    {{ text }}
   </p>
 </template>

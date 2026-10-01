@@ -4,12 +4,16 @@ import { RouterLink, useRouter } from 'vue-router'
 
 import BackupControls from '@/components/BackupControls.vue'
 import CaseReveal from '@/components/CaseReveal.vue'
+import CubePanel from '@/components/CubePanel.vue'
 import ResultsPanel from '@/components/ResultsPanel.vue'
 import ScrambleLine from '@/components/ScrambleLine.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import TimerDisplay from '@/components/TimerDisplay.vue'
 import UndoToast from '@/components/UndoToast.vue'
+import { useCubeAttempt } from '@/composables/useCubeAttempt'
 import { useTimer } from '@/composables/useTimer'
+import { formatMoves } from '@/core/cube'
+import type { CubeAttemptResult } from '@/core/cubeAttempt'
 import {
   buildModel,
   introEveryFromSlider,
@@ -21,10 +25,11 @@ import {
 import { CASES_BY_ID } from '@/core/data/cases'
 import { pickScramble, type PickedScramble } from '@/core/scramble'
 import { formatMs } from '@/core/time'
+import { useCubeStore } from '@/stores/cube'
 import { LIMITS, useSettingsStore } from '@/stores/settings'
 import { useSelectionStore } from '@/stores/selection'
 import { useSolvesStore } from '@/stores/solves'
-import type { Mode, Solve } from '@/core/types'
+import type { Input, Mode, Solve } from '@/core/types'
 
 const props = defineProps<{ mode: Mode }>()
 
@@ -32,10 +37,12 @@ const router = useRouter()
 const settings = useSettingsStore()
 const selection = useSelectionStore()
 const solves = useSolvesStore()
+const cube = useCubeStore()
 
 const current = ref<PickedScramble | null>(null)
-const revealed = ref<{ caseId: number; ms: number | null } | null>(null)
+const revealed = ref<{ caseId: number; ms: number | null; recognitionMs?: number } | null>(null)
 const showSettings = ref(false)
+const showCube = ref(false)
 
 /**
  * Study mode. The user pressed "I don't know", so the setup stays on screen —
@@ -108,7 +115,7 @@ function drawNext(): void {
   current.value = pickScramble(caseId, Math.random, rotation)
 }
 
-function onSolve(ms: number): void {
+function recordSolve(ms: number, input: Input, recognitionMs?: number): void {
   const picked = current.value
   if (!picked) return
   solves.record({
@@ -119,12 +126,33 @@ function onSolve(ms: number): void {
     ts: Date.now(),
     mode: props.mode,
     outcome: 'solved',
+    input,
+    ...(recognitionMs === undefined ? {} : { recognitionMs }),
   })
   revealed.value = {
     caseId: picked.caseId,
     ms,
+    ...(recognitionMs === undefined ? {} : { recognitionMs }),
   }
   drawNext()
+}
+
+function onSolve(ms: number): void {
+  recordSolve(ms, 'keyboard')
+}
+
+/**
+ * The cube says how the attempt ended. The recorded time is the whole
+ * attempt, recognition included, so it compares with every keyboard solve
+ * before it (docs/adr/0001-smart-cube-inspection-and-split-timing.md).
+ */
+function onCubeResult(result: CubeAttemptResult): void {
+  if (result.outcome === 'solved') {
+    recordSolve(result.recognitionMs + result.solveMs, 'cube', result.recognitionMs)
+  } else {
+    // Inspection ran out: not recognised, which is what a blank is.
+    recordUnknown('cube')
+  }
 }
 
 /**
@@ -136,10 +164,13 @@ function onSolve(ms: number): void {
  * be repeated against the cube already in front of the user.
  */
 function markUnknown(): void {
+  if (!canMarkUnknown.value) return
+  recordUnknown(cube.connected ? 'cube' : 'keyboard')
+}
+
+function recordUnknown(input: Input): void {
   const picked = current.value
-  // Only from a standing start: mid-hold there is a solve in flight, and the
-  // timer is about to be switched off underneath it.
-  if (!picked || studying.value || phase.value !== 'idle') return
+  if (!picked || studying.value) return
   solves.record({
     caseId: picked.caseId,
     scramble: picked.scramble,
@@ -147,6 +178,7 @@ function markUnknown(): void {
     ts: Date.now(),
     mode: props.mode,
     outcome: 'unknown',
+    input,
   })
   revealed.value = {
     caseId: picked.caseId,
@@ -220,7 +252,9 @@ onBeforeUnmount(() => clearTimeout(undoTimer))
 function onShortcut(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     showSettings.value = false
+    showCube.value = false
     revealed.value = null
+    cubeAttempt.abandon()
     return
   }
   // Space does nothing while the timer is off, which frees it to be the way
@@ -263,10 +297,39 @@ function onShortcut(event: KeyboardEvent): void {
 const { phase, displayMs, armed, touchHandlers } = useTimer({
   holdMs: computed(() => settings.holdMs),
   // A rep taken with the solution on screen is neither an honest time nor an
-  // honest recall, so while studying there is nothing to take it with.
-  enabled: computed(() => !studying.value),
+  // honest recall, so while studying there is nothing to take it with. And
+  // with a cube connected, the cube is the timer.
+  enabled: computed(() => !studying.value && !cube.connected),
   onSolve,
   onShortcut,
+})
+
+const cubeAttempt = useCubeAttempt({
+  scramble: computed(() => current.value?.scramble ?? null),
+  enabled: computed(() => !studying.value),
+  onResult: onCubeResult,
+})
+const cubePhase = cubeAttempt.phase
+const cubeProgress = cubeAttempt.progress
+const cubeDisplayMs = cubeAttempt.displayMs
+
+/** One display for both inputs. */
+const timerMs = computed(() => (cube.connected ? cubeDisplayMs.value : displayMs.value))
+const timerPhase = computed(() => {
+  if (!cube.connected) return phase.value
+  if (cubePhase.value === 'inspecting') return 'inspecting'
+  if (cubePhase.value === 'solving') return 'running'
+  return 'idle'
+})
+
+/**
+ * Only from a standing start. With the keyboard, mid-hold there is a solve in
+ * flight and the timer is about to be switched off underneath it; with a
+ * cube, a solve that has begun is already the answer to whether you know it.
+ */
+const canMarkUnknown = computed(() => {
+  if (!current.value || studying.value) return false
+  return cube.connected ? cubePhase.value !== 'solving' : phase.value === 'idle'
 })
 
 /**
@@ -319,6 +382,21 @@ watch(
       <div class="ml-auto flex items-center gap-2">
         <button
           type="button"
+          class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface"
+          :aria-expanded="showCube"
+          data-testid="cube-toggle"
+          @click="showCube = !showCube"
+        >
+          <span
+            class="size-2 rounded-full"
+            :class="cube.connected ? 'bg-ready' : 'bg-border'"
+            aria-hidden="true"
+          />
+          Cube
+          <span class="sr-only">{{ cube.connected ? '(connected)' : '(not connected)' }}</span>
+        </button>
+        <button
+          type="button"
           class="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface"
           :aria-expanded="showSettings"
           data-testid="settings-toggle"
@@ -337,6 +415,8 @@ watch(
     >
       {{ statusText }}
     </p>
+
+    <CubePanel v-if="showCube" />
 
     <section
       v-if="showSettings"
@@ -448,19 +528,59 @@ watch(
         v-if="current"
         :scramble="current.scramble"
         :size="settings.scrambleSize"
-        class="mx-auto max-w-3xl text-center"
+        :progress="cube.connected && !studying ? (cubeProgress ?? { done: 0, half: false }) : null"
+        :correction="cubeProgress ? formatMoves(cubeProgress.correction) : ''"
+        :class="[
+          'mx-auto max-w-3xl text-center',
+          cubePhase === 'unsolved' || cubePhase === 'inspecting' || cubePhase === 'solving'
+            ? 'opacity-40'
+            : '',
+        ]"
       />
       <!--
         Gone entirely while studying, rather than zeroed: a timer on screen in a
         state where the timer does nothing is a control that lies about being
         available, and its absence is how you see this state is different.
       -->
-      <TimerDisplay v-if="!studying" :ms="displayMs" :phase="phase" :size="settings.timerSize" />
+      <TimerDisplay v-if="!studying" :ms="timerMs" :phase="timerPhase" :size="settings.timerSize" />
+      <p
+        v-if="
+          !studying &&
+          revealed?.recognitionMs !== undefined &&
+          revealed.ms !== null &&
+          cubePhase !== 'inspecting' &&
+          cubePhase !== 'solving'
+        "
+        class="-mt-2 text-sm text-muted tabular-nums"
+        data-testid="split"
+      >
+        {{ formatMs(revealed.recognitionMs) }} recognition ·
+        {{ formatMs(revealed.ms - revealed.recognitionMs) }} turning
+      </p>
       <!-- min-h rather than a fixed height: the study line wraps on a phone. -->
       <p class="min-h-5 max-w-md text-center text-sm text-muted">
         <template v-if="studying">
           Apply the setup, turn your cube to match the picture, then the algorithm — it ends solved.
           Repeat as often as you like.
+        </template>
+        <template v-else-if="cube.connected">
+          <template v-if="cubePhase === 'unsolved'">
+            Solve the cube to start the scramble.
+            <button
+              type="button"
+              class="ml-1 underline hover:text-fg"
+              data-testid="cube-mark-solved-hint"
+              @click="andBlur(cube.markSolved, $event)"
+            >
+              Already solved? Mark it
+            </button>
+          </template>
+          <template v-else-if="cubePhase === 'scrambling'">
+            Apply the scramble — inspection starts when the case appears.
+          </template>
+          <template v-else-if="cubePhase === 'inspecting'">
+            Inspect. Your first turn starts the timer.
+          </template>
         </template>
         <template v-else-if="phase === 'idle'">
           <span class="hidden sm:inline">Hold space to get ready, release to start.</span>
@@ -475,7 +595,7 @@ watch(
         tapping it can never also arm the timer underneath.
       -->
       <button
-        v-if="current && !studying && phase === 'idle'"
+        v-if="canMarkUnknown"
         type="button"
         class="rounded-lg border border-border px-3 py-1.5 text-sm text-muted hover:bg-surface hover:text-fg"
         data-testid="dont-know"

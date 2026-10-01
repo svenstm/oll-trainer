@@ -79,11 +79,11 @@ describe('a smart-cube attempt', () => {
     expect(solveMs % 1000).toBe(0)
   })
 
-  it('times the solve from the first turn to OLL solved', () => {
+  it('times recognition up to the first turn, and the solve from it', () => {
     const reached = play(startAttempt(SOLVED, config), SOLVED, picked.scramble)
     const turned = play(reached.state, reached.cube, 'U', reached.at)
     expect(turned.state).toEqual({ phase: 'solving', recognitionMs: 1000, startedAt: turned.at })
-    expect(attemptDisplayMs(turned.state, turned.at + 500, config)).toBe(500)
+    expect(attemptDisplayMs(turned.state, turned.at + 500, config)).toBe(1500)
   })
 
   it('treats a wrong route that still lands on the case as reaching it', () => {

@@ -152,7 +152,11 @@ export function reduceAttempt(
   }
 }
 
-/** What the timer display should show, in milliseconds. */
+/**
+ * What the timer display should show, in milliseconds: the inspection left,
+ * then the whole attempt so far — recognition included, so the number it
+ * stops on is the one recorded.
+ */
 export function attemptDisplayMs(
   state: CubeAttemptState,
   now: number,
@@ -162,7 +166,7 @@ export function attemptDisplayMs(
     case 'inspecting':
       return Math.max(0, config.inspectionMs - (now - state.since))
     case 'solving':
-      return Math.max(0, now - state.startedAt)
+      return state.recognitionMs + Math.max(0, now - state.startedAt)
     default:
       return 0
   }
