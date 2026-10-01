@@ -45,6 +45,6 @@ _Avoid_: DNF, skip, fail
 A Bluetooth cube that reports its turns and state to the app. An optional input alongside the keyboard and touch timer.
 _Avoid_: Bluetooth cube, connected cube
 
-**Hold**:
+**Grip**:
 The colours the user keeps on top and in front while training (default yellow top, green front). Turns the smart cube's own frame into the frame scrambles and angles are written in.
-_Avoid_: Orientation (that word belongs to OLL itself), grip
+_Avoid_: Hold (that is the press that arms the timer), orientation (that word belongs to OLL itself)

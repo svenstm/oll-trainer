@@ -1,3 +1,5 @@
+import type { Grip } from './grip'
+
 /** Practice modes. `learn` is the pace-scheduled one. */
 export type Mode = 'train' | 'recap' | 'learn'
 
@@ -102,6 +104,14 @@ export type Outcome = 'solved' | 'unknown'
 
 export const OUTCOMES = ['solved', 'unknown'] as const satisfies readonly Outcome[]
 
+/**
+ * What timed an attempt. Absent on everything recorded before smart cubes,
+ * which was all `keyboard` (touch included).
+ */
+export type Input = 'keyboard' | 'cube'
+
+export const INPUTS = ['keyboard', 'cube'] as const satisfies readonly Input[]
+
 interface AttemptBase {
   id: string
   caseId: number
@@ -110,12 +120,25 @@ interface AttemptBase {
   /** Wall clock, epoch ms. */
   ts: number
   mode: Mode
+  input?: Input
 }
 
 export interface SolvedAttempt extends AttemptBase {
   outcome: 'solved'
-  /** True elapsed milliseconds, full precision. Never re-parsed from the DOM. */
+  /**
+   * True elapsed milliseconds, full precision. Never re-parsed from the DOM.
+   *
+   * Always recognition *and* execution, so every attempt measures the same
+   * thing: the keyboard timer runs from release, before the case is looked
+   * at, and a smart-cube attempt adds its inspection back in. See
+   * docs/adr/0001-smart-cube-inspection-and-split-timing.md.
+   */
   ms: number
+  /**
+   * How much of `ms` was inspection, before the first turn. Only a smart cube
+   * can tell the two apart, so only its attempts carry it.
+   */
+  recognitionMs?: number
 }
 
 /**
@@ -155,4 +178,6 @@ export interface Settings {
   holdMs: number
   /** Trials that may pass before a case still being introduced is served. */
   introEvery: number
+  /** How the user holds a smart cube. */
+  grip: Grip
 }
