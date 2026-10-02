@@ -158,7 +158,7 @@ the fold-over-history property so deleting a solve still un-learns it.
 `arts.multiday.test.ts` **deleted** — all 220 lines pin multi-day forgetting
 behaviour that will no longer exist. `simulate-arts.ts` → `simulate-pace.ts`.
 Touch `ResultsPanel.vue`, `PracticeView.vue`, `stores/settings.ts`,
-`core/parse.ts`, `core/types.ts`, `PLAN.md`, `plan-deviations.md`.
+`core/parse.ts`, `core/types.ts`, `plan-deviations.md`.
 
 Side benefit: activation summed over every encounter, making a replay quadratic
 in encounters per case (the reason `maxEncounters` existed). The new model needs

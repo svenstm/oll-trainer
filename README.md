@@ -80,9 +80,11 @@ and so runs by hand rather than in CI.
 - `scripts/` — dev-only data generation and the offline check, run by hand;
   generated output is committed.
 
-The plan this was built against lives in [`docs/PLAN.md`](docs/PLAN.md), kept
-as written. Where the finished app departs from it, and why, is recorded in
-[`docs/plan-deviations.md`](docs/plan-deviations.md). The scheduler is designed
+The plan this was built against has been executed and removed; its last
+version is [in the history](https://github.com/svenstm/oll-trainer/blob/66b7946/docs/PLAN.md). Where the finished app departs from it, and
+why, is recorded in [`docs/plan-deviations.md`](docs/plan-deviations.md).
+Domain terms are defined in [`CONTEXT.md`](CONTEXT.md), and decisions taken
+since in [`docs/adr/`](docs/adr/). The scheduler is designed
 and measured in [`docs/pace-design.md`](docs/pace-design.md); the
 forgetting-curve model it replaced is in
 [`docs/arts-recalibration.md`](docs/arts-recalibration.md).

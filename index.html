@@ -16,7 +16,7 @@
     <title>Sunetzu — The Art of the Last Layer</title>
     <script>
       // Applied before first paint so a dark-theme reload does not flash white.
-      // Key and shape are defined in docs/PLAN.md §6.
+      // Key and shape are those of `ollTrainer.v1.settings` in src/stores/settings.ts.
       try {
         var theme = JSON.parse(localStorage.getItem('ollTrainer.v1.settings') || '{}').theme
         if (theme === 'light' || theme === 'dark') {

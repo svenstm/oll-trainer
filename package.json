@@ -26,7 +26,9 @@
     "verify:offline": "vite build && tsx scripts/verify-offline.ts"
   },
   "dependencies": {
+    "gan-web-bluetooth": "^3.0.2",
     "pinia": "^4.0.2",
+    "rxjs": "^7.8.2",
     "vue": "^3.5.40",
     "vue-router": "^5.2.0"
   },

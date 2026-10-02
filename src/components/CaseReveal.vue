@@ -118,7 +118,7 @@ const alternatives = computed<Alternative[]>(() =>
         Named after the algorithm, not before it, so the algorithms align —
         and muted, so it reads as someone else's answer rather than a second
         thing to learn: the row above is the one the scheduler measures. A
-        name and no link — PLAN §17 kept other people's sites out of this app,
+        name and no link — the original plan kept other people's sites out of this app,
         and a link inside the panel would be a navigation control in the one
         place the user is mid-solve. The URL is in SOURCES and the README.
       -->

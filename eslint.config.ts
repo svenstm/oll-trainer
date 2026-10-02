@@ -30,7 +30,7 @@ export default defineConfigWithVueTs(
     name: 'app/component-names',
     rules: {
       // The rule guards against clashing with a real HTML element. These do
-      // not, and docs/PLAN.md §3 names them.
+      // not.
       'vue/multi-word-component-names': ['error', { ignores: ['Sparkline'] }],
     },
   },

@@ -8,10 +8,13 @@
  */
 
 import { CASES_BY_ID } from './data/cases'
+import { COLOURS, DEFAULT_GRIP, isValidGrip, type Colour, type Grip } from './grip'
 import { PACE_DEFAULTS } from './pace'
 import {
+  INPUTS,
   MODES,
   OUTCOMES,
+  type Input,
   type Mode,
   type Outcome,
   type Rotation,
@@ -57,6 +60,10 @@ export function parseSolve(raw: unknown): Solve | null {
     rotation: asOneOf<Rotation>(raw.rotation, ROTATIONS, ''),
     ts,
     mode: asOneOf<Mode>(raw.mode, MODES, 'train'),
+    // Left off rather than defaulted, so a round trip writes back what it read.
+    ...(typeof raw.input === 'string' && (INPUTS as readonly string[]).includes(raw.input)
+      ? { input: raw.input as Input }
+      : {}),
   }
 
   // Anything written before "I don't know" existed has no outcome, and every
@@ -67,7 +74,10 @@ export function parseSolve(raw: unknown): Solve | null {
 
   const ms = asFiniteNumber(raw.ms, Number.NaN)
   if (!Number.isFinite(ms)) return null
-  return { ...base, outcome: 'solved', ms }
+  const recognitionMs = asFiniteNumber(raw.recognitionMs, Number.NaN)
+  // Part of `ms`, so it can be neither negative nor longer than the whole.
+  const hasRecognition = Number.isFinite(recognitionMs) && recognitionMs >= 0 && recognitionMs <= ms
+  return { ...base, outcome: 'solved', ms, ...(hasRecognition ? { recognitionMs } : {}) }
 }
 
 /** Oldest first, which is what the ARTS replay requires. */
@@ -104,6 +114,16 @@ export const DEFAULT_SETTINGS: Settings = {
   scrambleSize: 1.25,
   holdMs: 300,
   introEvery: PACE_DEFAULTS.introEvery,
+  grip: DEFAULT_GRIP,
+}
+
+function parseGrip(raw: unknown): Grip {
+  if (!isRecord(raw)) return DEFAULT_GRIP
+  const grip = {
+    top: asOneOf<Colour>(raw.top, COLOURS, DEFAULT_GRIP.top),
+    front: asOneOf<Colour>(raw.front, COLOURS, DEFAULT_GRIP.front),
+  }
+  return isValidGrip(grip) ? grip : DEFAULT_GRIP
 }
 
 export function parseSettings(raw: unknown): Settings | null {
@@ -133,5 +153,6 @@ export function parseSettings(raw: unknown): Settings | null {
         PACE_DEFAULTS.introGentle,
       ),
     ),
+    grip: parseGrip(raw.grip),
   }
 }

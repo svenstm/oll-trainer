@@ -1,6 +1,6 @@
 # Where the build differs from the plan
 
-[`PLAN.md`](PLAN.md) is kept as written. This records the places the finished
+The original plan, [`PLAN.md`](https://github.com/svenstm/oll-trainer/blob/66b7946/docs/PLAN.md), has since been removed from the tree; the link is to its last version. This records the places the finished
 app deliberately departs from it, and why.
 
 ## ARTS was replaced by a pace model (§7)
